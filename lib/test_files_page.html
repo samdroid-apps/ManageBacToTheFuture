@@ -1,0 +1,675 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html class="" xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<script src="test_files_page_files/9e9c7ea876" type="text/javascript"></script><script src="test_files_page_files/track.js" defer="defer" async="" type="application/javascript"></script><script src="test_files_page_files/nr-632.js"></script><script src="test_files_page_files/BPVzDqeXVQdr1Wy98170dg.js" async="" type="text/javascript"></script><script type="text/javascript">window.NREUM||(NREUM={});NREUM.info={"beacon":"bam.nr-data.net","errorBeacon":"bam.nr-data.net","licenseKey":"9e9c7ea876","applicationID":"746283","transactionName":"IlZdREEKWltSEx1fUj5YQENWEUUYXg9WU0g=","queueTime":0,"applicationTime":346,"agent":"js-agent.newrelic.com/nr-632.min.js"}</script>
+<script type="text/javascript">(window.NREUM||(NREUM={})).loader_config={xpid:"VwcEUUVUDAUCXFI="};window.NREUM||(NREUM={}),__nr_require=function(t,e,n){function r(n){if(!e[n]){var o=e[n]={exports:{}};t[n][0].call(o.exports,function(e){var o=t[n][1][e];return r(o?o:e)},o,o.exports)}return e[n].exports}if("function"==typeof __nr_require)return __nr_require;for(var o=0;o<n.length;o++)r(n[o]);return r}({QJf3ax:[function(t,e){function n(t){function e(e,n,a){t&&t(e,n,a),a||(a={});for(var c=s(e),u=c.length,f=i(a,o,r),d=0;u>d;d++)c[d].apply(f,n);return f}function a(t,e){u[t]=s(t).concat(e)}function s(t){return u[t]||[]}function c(){return n(e)}var u={};return{on:a,emit:e,create:c,listeners:s,_events:u}}function r(){return{}}var o="nr@context",i=t("gos");e.exports=n()},{gos:"7eSDFh"}],ee:[function(t,e){e.exports=t("QJf3ax")},{}],3:[function(t){function e(t){try{i.console&&console.log(t)}catch(e){}}var n,r=t("ee"),o=t(1),i={};try{n=localStorage.getItem("__nr_flags").split(","),console&&"function"==typeof console.log&&(i.console=!0,-1!==n.indexOf("dev")&&(i.dev=!0),-1!==n.indexOf("nr_dev")&&(i.nrDev=!0))}catch(a){}i.nrDev&&r.on("internal-error",function(t){e(t.stack)}),i.dev&&r.on("fn-err",function(t,n,r){e(r.stack)}),i.dev&&(e("NR AGENT IN DEVELOPMENT MODE"),e("flags: "+o(i,function(t){return t}).join(", ")))},{1:20,ee:"QJf3ax"}],4:[function(t){function e(t,e,n,i,s){try{c?c-=1:r("err",[s||new UncaughtException(t,e,n)])}catch(u){try{r("ierr",[u,(new Date).getTime(),!0])}catch(f){}}return"function"==typeof a?a.apply(this,o(arguments)):!1}function UncaughtException(t,e,n){this.message=t||"Uncaught error with no additional information",this.sourceURL=e,this.line=n}function n(t){r("err",[t,(new Date).getTime()])}var r=t("handle"),o=t(6),i=t("ee"),a=window.onerror,s=!1,c=0;t("loader").features.err=!0,t(3),window.onerror=e;try{throw new Error}catch(u){"stack"in u&&(t(4),t(5),"addEventListener"in window&&t(1),window.XMLHttpRequest&&XMLHttpRequest.prototype&&XMLHttpRequest.prototype.addEventListener&&window.XMLHttpRequest&&XMLHttpRequest.prototype&&XMLHttpRequest.prototype.addEventListener&&!/CriOS/.test(navigator.userAgent)&&t(2),s=!0)}i.on("fn-start",function(){s&&(c+=1)}),i.on("fn-err",function(t,e,r){s&&(this.thrown=!0,n(r))}),i.on("fn-end",function(){s&&!this.thrown&&c>0&&(c-=1)}),i.on("internal-error",function(t){r("ierr",[t,(new Date).getTime(),!0])})},{1:5,2:8,3:3,4:7,5:6,6:21,ee:"QJf3ax",handle:"D5DuLP",loader:"G9z0Bl"}],5:[function(t,e){function n(t){i.inPlace(t,["addEventListener","removeEventListener"],"-",r)}function r(t){return t[1]}var o=(t(1),t("ee").create()),i=t(2)(o),a=t("gos");if(e.exports=o,n(window),"getPrototypeOf"in Object){for(var s=document;s&&!s.hasOwnProperty("addEventListener");)s=Object.getPrototypeOf(s);s&&n(s);for(var c=XMLHttpRequest.prototype;c&&!c.hasOwnProperty("addEventListener");)c=Object.getPrototypeOf(c);c&&n(c)}else XMLHttpRequest.prototype.hasOwnProperty("addEventListener")&&n(XMLHttpRequest.prototype);o.on("addEventListener-start",function(t){if(t[1]){var e=t[1];"function"==typeof e?this.wrapped=t[1]=a(e,"nr@wrapped",function(){return i(e,"fn-",null,e.name||"anonymous")}):"function"==typeof e.handleEvent&&i.inPlace(e,["handleEvent"],"fn-")}}),o.on("removeEventListener-start",function(t){var e=this.wrapped;e&&(t[1]=e)})},{1:21,2:22,ee:"QJf3ax",gos:"7eSDFh"}],6:[function(t,e){var n=(t(2),t("ee").create()),r=t(1)(n);e.exports=n,r.inPlace(window,["requestAnimationFrame","mozRequestAnimationFrame","webkitRequestAnimationFrame","msRequestAnimationFrame"],"raf-"),n.on("raf-start",function(t){t[0]=r(t[0],"fn-")})},{1:22,2:21,ee:"QJf3ax"}],7:[function(t,e){function n(t,e,n){t[0]=o(t[0],"fn-",null,n)}var r=(t(2),t("ee").create()),o=t(1)(r);e.exports=r,o.inPlace(window,["setTimeout","setInterval","setImmediate"],"setTimer-"),r.on("setTimer-start",n)},{1:22,2:21,ee:"QJf3ax"}],8:[function(t,e){function n(){u.inPlace(this,p,"fn-")}function r(t,e){u.inPlace(e,["onreadystatechange"],"fn-")}function o(t,e){return e}function i(t,e){for(var n in t)e[n]=t[n];return e}var a=t("ee").create(),s=t(1),c=t(2),u=c(a),f=c(s),d=window.XMLHttpRequest,p=["onload","onerror","onabort","onloadstart","onloadend","onprogress","ontimeout"];e.exports=a,window.XMLHttpRequest=function(t){var e=new d(t);try{a.emit("new-xhr",[],e),f.inPlace(e,["addEventListener","removeEventListener"],"-",o),e.addEventListener("readystatechange",n,!1)}catch(r){try{a.emit("internal-error",[r])}catch(i){}}return e},i(d,XMLHttpRequest),XMLHttpRequest.prototype=d.prototype,u.inPlace(XMLHttpRequest.prototype,["open","send"],"-xhr-",o),a.on("send-xhr-start",r),a.on("open-xhr-start",r)},{1:5,2:22,ee:"QJf3ax"}],9:[function(t){function e(t){var e=this.params,r=this.metrics;if(!this.ended){this.ended=!0;for(var i=0;c>i;i++)t.removeEventListener(s[i],this.listener,!1);if(!e.aborted){if(r.duration=(new Date).getTime()-this.startTime,4===t.readyState){e.status=t.status;var a=t.responseType,u="arraybuffer"===a||"blob"===a||"json"===a?t.response:t.responseText,f=n(u);if(f&&(r.rxSize=f),this.sameOrigin){var d=t.getResponseHeader("X-NewRelic-App-Data");d&&(e.cat=d.split(", ").pop())}}else e.status=0;r.cbTime=this.cbTime,o("xhr",[e,r,this.startTime])}}}function n(t){if("string"==typeof t&&t.length)return t.length;if("object"!=typeof t)return void 0;if("undefined"!=typeof ArrayBuffer&&t instanceof ArrayBuffer&&t.byteLength)return t.byteLength;if("undefined"!=typeof Blob&&t instanceof Blob&&t.size)return t.size;if("undefined"!=typeof FormData&&t instanceof FormData)return void 0;try{return JSON.stringify(t).length}catch(e){return void 0}}function r(t,e){var n=i(e),r=t.params;r.host=n.hostname+":"+n.port,r.pathname=n.pathname,t.sameOrigin=n.sameOrigin}if(window.XMLHttpRequest&&XMLHttpRequest.prototype&&XMLHttpRequest.prototype.addEventListener&&!/CriOS/.test(navigator.userAgent)){t("loader").features.xhr=!0;var o=t("handle"),i=t(2),a=t("ee"),s=["load","error","abort","timeout"],c=s.length,u=t(1);t(4),t(3),a.on("new-xhr",function(){this.totalCbs=0,this.called=0,this.cbTime=0,this.end=e,this.ended=!1,this.xhrGuids={}}),a.on("open-xhr-start",function(t){this.params={method:t[0]},r(this,t[1]),this.metrics={}}),a.on("open-xhr-end",function(t,e){"loader_config"in NREUM&&"xpid"in NREUM.loader_config&&this.sameOrigin&&e.setRequestHeader("X-NewRelic-ID",NREUM.loader_config.xpid)}),a.on("send-xhr-start",function(t,e){var r=this.metrics,o=t[0],i=this;if(r&&o){var u=n(o);u&&(r.txSize=u)}this.startTime=(new Date).getTime(),this.listener=function(t){try{"abort"===t.type&&(i.params.aborted=!0),("load"!==t.type||i.called===i.totalCbs&&(i.onloadCalled||"function"!=typeof e.onload))&&i.end(e)}catch(n){try{a.emit("internal-error",[n])}catch(r){}}};for(var f=0;c>f;f++)e.addEventListener(s[f],this.listener,!1)}),a.on("xhr-cb-time",function(t,e,n){this.cbTime+=t,e?this.onloadCalled=!0:this.called+=1,this.called!==this.totalCbs||!this.onloadCalled&&"function"==typeof n.onload||this.end(n)}),a.on("xhr-load-added",function(t,e){var n=""+u(t)+!!e;this.xhrGuids&&!this.xhrGuids[n]&&(this.xhrGuids[n]=!0,this.totalCbs+=1)}),a.on("xhr-load-removed",function(t,e){var n=""+u(t)+!!e;this.xhrGuids&&this.xhrGuids[n]&&(delete this.xhrGuids[n],this.totalCbs-=1)}),a.on("addEventListener-end",function(t,e){e instanceof XMLHttpRequest&&"load"===t[0]&&a.emit("xhr-load-added",[t[1],t[2]],e)}),a.on("removeEventListener-end",function(t,e){e instanceof XMLHttpRequest&&"load"===t[0]&&a.emit("xhr-load-removed",[t[1],t[2]],e)}),a.on("fn-start",function(t,e,n){e instanceof XMLHttpRequest&&("onload"===n&&(this.onload=!0),("load"===(t[0]&&t[0].type)||this.onload)&&(this.xhrCbStart=(new Date).getTime()))}),a.on("fn-end",function(t,e){this.xhrCbStart&&a.emit("xhr-cb-time",[(new Date).getTime()-this.xhrCbStart,this.onload,e],e)})}},{1:"XL7HBI",2:10,3:8,4:5,ee:"QJf3ax",handle:"D5DuLP",loader:"G9z0Bl"}],10:[function(t,e){e.exports=function(t){var e=document.createElement("a"),n=window.location,r={};e.href=t,r.port=e.port;var o=e.href.split("://");return!r.port&&o[1]&&(r.port=o[1].split("/")[0].split("@").pop().split(":")[1]),r.port&&"0"!==r.port||(r.port="https"===o[0]?"443":"80"),r.hostname=e.hostname||n.hostname,r.pathname=e.pathname,r.protocol=o[0],"/"!==r.pathname.charAt(0)&&(r.pathname="/"+r.pathname),r.sameOrigin=!e.hostname||e.hostname===document.domain&&e.port===n.port&&e.protocol===n.protocol,r}},{}],11:[function(t,e){function n(t){return function(){r(t,[(new Date).getTime()].concat(i(arguments)))}}var r=t("handle"),o=t(1),i=t(2);"undefined"==typeof window.newrelic&&(newrelic=window.NREUM);var a=["setPageViewName","addPageAction","setCustomAttribute","finished","addToTrace","inlineHit","noticeError"];o(a,function(t,e){window.NREUM[e]=n("api-"+e)}),e.exports=window.NREUM},{1:20,2:21,handle:"D5DuLP"}],"7eSDFh":[function(t,e){function n(t,e,n){if(r.call(t,e))return t[e];var o=n();if(Object.defineProperty&&Object.keys)try{return Object.defineProperty(t,e,{value:o,writable:!0,enumerable:!1}),o}catch(i){}return t[e]=o,o}var r=Object.prototype.hasOwnProperty;e.exports=n},{}],gos:[function(t,e){e.exports=t("7eSDFh")},{}],handle:[function(t,e){e.exports=t("D5DuLP")},{}],D5DuLP:[function(t,e){function n(t,e,n){return r.listeners(t).length?r.emit(t,e,n):(o[t]||(o[t]=[]),void o[t].push(e))}var r=t("ee").create(),o={};e.exports=n,n.ee=r,r.q=o},{ee:"QJf3ax"}],id:[function(t,e){e.exports=t("XL7HBI")},{}],XL7HBI:[function(t,e){function n(t){var e=typeof t;return!t||"object"!==e&&"function"!==e?-1:t===window?0:i(t,o,function(){return r++})}var r=1,o="nr@id",i=t("gos");e.exports=n},{gos:"7eSDFh"}],G9z0Bl:[function(t,e){function n(){var t=p.info=NREUM.info,e=u.getElementsByTagName("script")[0];if(t&&t.licenseKey&&t.applicationID&&e){s(d,function(e,n){e in t||(t[e]=n)});var n="https"===f.split(":")[0]||t.sslForHttp;p.proto=n?"https://":"http://",a("mark",["onload",i()]);var r=u.createElement("script");r.src=p.proto+t.agent,e.parentNode.insertBefore(r,e)}}function r(){"complete"===u.readyState&&o()}function o(){a("mark",["domContent",i()])}function i(){return(new Date).getTime()}var a=t("handle"),s=t(1),c=(t(2),window),u=c.document,f=(""+location).split("?")[0],d={beacon:"bam.nr-data.net",errorBeacon:"bam.nr-data.net",agent:"js-agent.newrelic.com/nr-632.min.js"},p=e.exports={offset:i(),origin:f,features:{}};u.addEventListener?(u.addEventListener("DOMContentLoaded",o,!1),c.addEventListener("load",n,!1)):(u.attachEvent("onreadystatechange",r),c.attachEvent("onload",n)),a("mark",["firstbyte",i()])},{1:20,2:11,handle:"D5DuLP"}],loader:[function(t,e){e.exports=t("G9z0Bl")},{}],20:[function(t,e){function n(t,e){var n=[],o="",i=0;for(o in t)r.call(t,o)&&(n[i]=e(o,t[o]),i+=1);return n}var r=Object.prototype.hasOwnProperty;e.exports=n},{}],21:[function(t,e){function n(t,e,n){e||(e=0),"undefined"==typeof n&&(n=t?t.length:0);for(var r=-1,o=n-e||0,i=Array(0>o?0:o);++r<o;)i[r]=t[e+r];return i}e.exports=n},{}],22:[function(t,e){function n(t){return!(t&&"function"==typeof t&&t.apply&&!t[i])}var r=t("ee"),o=t(1),i="nr@wrapper",a=Object.prototype.hasOwnProperty;e.exports=function(t){function e(t,e,r,a){function nrWrapper(){var n,i,s,u;try{i=this,n=o(arguments),s=r&&r(n,i)||{}}catch(d){f([d,"",[n,i,a],s])}c(e+"start",[n,i,a],s);try{return u=t.apply(i,n)}catch(p){throw c(e+"err",[n,i,p],s),p}finally{c(e+"end",[n,i,u],s)}}return n(t)?t:(e||(e=""),nrWrapper[i]=!0,u(t,nrWrapper),nrWrapper)}function s(t,r,o,i){o||(o="");var a,s,c,u="-"===o.charAt(0);for(c=0;c<r.length;c++)s=r[c],a=t[s],n(a)||(t[s]=e(a,u?s+o:o,i,s))}function c(e,n,r){try{t.emit(e,n,r)}catch(o){f([o,e,n,r])}}function u(t,e){if(Object.defineProperty&&Object.keys)try{var n=Object.keys(t);return n.forEach(function(n){Object.defineProperty(e,n,{get:function(){return t[n]},set:function(e){return t[n]=e,e}})}),e}catch(r){f([r])}for(var o in t)a.call(t,o)&&(e[o]=t[o]);return e}function f(e){try{t.emit("internal-error",e)}catch(n){}}return t||(t=r),e.inPlace=s,e.flag=i,e}},{1:21,ee:"QJf3ax"}]},{},["G9z0Bl",4,9]);</script>
+<meta content="Faria Systems Inc., A Delaware Corporation" name="Author">
+<title>
+
+Telopea Park School
+
+</title>
+<link href="test_files_page_files/application-237a08548fb750303219d2336b591527.css" media="screen" rel="stylesheet">
+<link href="test_files_page_files/print-4bf0a654a04e524fb70a2dab1cb59785.css" media="print" rel="stylesheet">
+<script src="test_files_page_files/application-d4853872100f7aaec9a1f658380ae7ab.js"></script>
+
+<meta content="authenticity_token" name="csrf-param">
+<meta content="+0284wdGOn5vJIecKKnsRJOS5I0zMRGhEHxX081Ii7M=" name="csrf-token">
+<style type="text/css">.fancybox-margin{margin-right:13px;}</style><style media="screen" type="text/css">.uv-icon{-webkit-box-sizing:border-box;-moz-box-sizing:border-box;box-sizing:border-box;display:inline-block;cursor:pointer;position:relative;-webkit-transition:all 300ms;-moz-transition:all 300ms;-o-transition:all 300ms;transition:all 300ms;width:39px;height:39px;position:fixed;z-index:100002;opacity:0.8;-webkit-transition:opacity 100ms;-moz-transition:opacity 100ms;-o-transition:opacity 100ms;transition:opacity 100ms}.uv-icon.uv-bottom-right{bottom:10px;right:12px}.uv-icon.uv-top-right{top:10px;right:12px}.uv-icon.uv-bottom-left{bottom:10px;left:12px}.uv-icon.uv-top-left{top:10px;left:12px}.uv-icon.uv-is-selected{opacity:1}.uv-icon svg{width:39px;height:39px}.uv-popover{font-family:sans-serif;font-weight:100;font-size:13px;color:black;position:fixed;z-index:100001}.uv-popover-content{-webkit-border-radius:5px;-moz-border-radius:5px;-ms-border-radius:5px;-o-border-radius:5px;border-radius:5px;background:white;position:relative;width:325px;height:325px;-webkit-transition:background 200ms;-moz-transition:background 200ms;-o-transition:background 200ms;transition:background 200ms}.uv-bottom .uv-popover-content{-webkit-box-shadow:rgba(0,0,0,0.3) 0 -10px 60px,rgba(0,0,0,0.1) 0 0 20px;-moz-box-shadow:rgba(0,0,0,0.3) 0 -10px 60px,rgba(0,0,0,0.1) 0 0 20px;box-shadow:rgba(0,0,0,0.3) 0 -10px 60px,rgba(0,0,0,0.1) 0 0 20px}.uv-top .uv-popover-content{-webkit-box-shadow:rgba(0,0,0,0.3) 0 10px 60px,rgba(0,0,0,0.1) 0 0 20px;-moz-box-shadow:rgba(0,0,0,0.3) 0 10px 60px,rgba(0,0,0,0.1) 0 0 20px;box-shadow:rgba(0,0,0,0.3) 0 10px 60px,rgba(0,0,0,0.1) 0 0 20px}.uv-left .uv-popover-content{-webkit-box-shadow:rgba(0,0,0,0.3) 10px 0 60px,rgba(0,0,0,0.1) 0 0 20px;-moz-box-shadow:rgba(0,0,0,0.3) 10px 0 60px,rgba(0,0,0,0.1) 0 0 20px;box-shadow:rgba(0,0,0,0.3) 10px 0 60px,rgba(0,0,0,0.1) 0 0 20px}.uv-right .uv-popover-content{-webkit-box-shadow:rgba(0,0,0,0.3) -10px 0 60px,rgba(0,0,0,0.1) 0 0 20px;-moz-box-shadow:rgba(0,0,0,0.3) -10px 0 60px,rgba(0,0,0,0.1) 0 0 20px;box-shadow:rgba(0,0,0,0.3) -10px 0 60px,rgba(0,0,0,0.1) 0 0 20px}.uv-ie8 .uv-popover-content{position:relative}.uv-ie8 .uv-popover-content .uv-popover-content-shadow{display:block;background:black;content:'';position:absolute;left:-15px;top:-15px;width:100%;height:100%;filter:progid:DXImageTransform.Microsoft.Blur(PixelRadius=15,MakeShadow=true,ShadowOpacity=0.30);z-index:-1}.uv-popover-tail{border:9px solid transparent;width:0;z-index:10;position:absolute;-webkit-transition:border-top-color 200ms;-moz-transition:border-top-color 200ms;-o-transition:border-top-color 200ms;transition:border-top-color 200ms}.uv-top .uv-popover-tail{bottom:-20px;border-top:11px solid white}.uv-bottom .uv-popover-tail{top:-20px;border-bottom:11px solid white}.uv-left .uv-popover-tail{right:-20px;border-left:11px solid white}.uv-right .uv-popover-tail{left:-20px;border-right:11px solid white}.uv-popover-loading{background:white;-webkit-border-radius:5px;-moz-border-radius:5px;-ms-border-radius:5px;-o-border-radius:5px;border-radius:5px;position:absolute;width:100%;height:100%;left:0;top:0}.uv-popover-loading-text{position:absolute;top:50%;margin-top:-0.5em;width:100%;text-align:center}.uv-popover-iframe-container{height:100%}.uv-popover-iframe{-webkit-border-radius:5px;-moz-border-radius:5px;-ms-border-radius:5px;-o-border-radius:5px;border-radius:5px;overflow:hidden}.uv-is-hidden{display:none}.uv-is-invisible{display:block !important;visibility:hidden !important}.uv-is-transitioning{display:block !important}.uv-no-transition{-moz-transition:none !important;-webkit-transition:none !important;-o-transition:color 0 ease-in !important;transition:none !important}.uv-fade{opacity:1;-webkit-transition:opacity 200ms ease-out;-moz-transition:opacity 200ms ease-out;-o-transition:opacity 200ms ease-out;transition:opacity 200ms ease-out}.uv-fade.uv-is-hidden{opacity:0}.uv-scale-top,.uv-scale-top-left,.uv-scale-top-right,.uv-scale-bottom,.uv-scale-bottom-left,.uv-scale-bottom-right,.uv-scale-right,.uv-scale-right-top,.uv-scale-right-bottom,.uv-scale-left,.uv-scale-left-top,.uv-scale-left-bottom,.uv-slide-top,.uv-slide-bottom,.uv-slide-left,.uv-slide-right{opacity:1;-webkit-transition:all 80ms ease-out;-moz-transition:all 80ms ease-out;-o-transition:all 80ms ease-out;transition:all 80ms ease-out}.uv-scale-top.uv-is-hidden{opacity:0;-webkit-transform:scale(0.8) translateY(-15%);-moz-transform:scale(0.8) translateY(-15%);-ms-transform:scale(0.8) translateY(-15%);-o-transform:scale(0.8) translateY(-15%);transform:scale(0.8) translateY(-15%)}.uv-scale-top-left.uv-is-hidden{opacity:0;-webkit-transform:scale(0.8) translateY(-15%) translateX(-10%);-moz-transform:scale(0.8) translateY(-15%) translateX(-10%);-ms-transform:scale(0.8) translateY(-15%) translateX(-10%);-o-transform:scale(0.8) translateY(-15%) translateX(-10%);transform:scale(0.8) translateY(-15%) translateX(-10%)}.uv-scale-top-right.uv-is-hidden{opacity:0;-webkit-transform:scale(0.8) translateY(-15%) translateX(10%);-moz-transform:scale(0.8) translateY(-15%) translateX(10%);-ms-transform:scale(0.8) translateY(-15%) translateX(10%);-o-transform:scale(0.8) translateY(-15%) translateX(10%);transform:scale(0.8) translateY(-15%) translateX(10%)}.uv-scale-bottom.uv-is-hidden{opacity:0;-webkit-transform:scale(0.8) translateY(15%);-moz-transform:scale(0.8) translateY(15%);-ms-transform:scale(0.8) translateY(15%);-o-transform:scale(0.8) translateY(15%);transform:scale(0.8) translateY(15%)}.uv-scale-bottom-left.uv-is-hidden{opacity:0;-webkit-transform:scale(0.8) translateY(15%) translateX(-10%);-moz-transform:scale(0.8) translateY(15%) translateX(-10%);-ms-transform:scale(0.8) translateY(15%) translateX(-10%);-o-transform:scale(0.8) translateY(15%) translateX(-10%);transform:scale(0.8) translateY(15%) translateX(-10%)}.uv-scale-bottom-right.uv-is-hidden{opacity:0;-webkit-transform:scale(0.8) translateY(15%) translateX(10%);-moz-transform:scale(0.8) translateY(15%) translateX(10%);-ms-transform:scale(0.8) translateY(15%) translateX(10%);-o-transform:scale(0.8) translateY(15%) translateX(10%);transform:scale(0.8) translateY(15%) translateX(10%)}.uv-scale-right.uv-is-hidden{opacity:0;-webkit-transform:scale(0.8) translateX(15%);-moz-transform:scale(0.8) translateX(15%);-ms-transform:scale(0.8) translateX(15%);-o-transform:scale(0.8) translateX(15%);transform:scale(0.8) translateX(15%)}.uv-scale-right-top.uv-is-hidden{opacity:0;-webkit-transform:scale(0.8) translateX(15%) translateY(-10%);-moz-transform:scale(0.8) translateX(15%) translateY(-10%);-ms-transform:scale(0.8) translateX(15%) translateY(-10%);-o-transform:scale(0.8) translateX(15%) translateY(-10%);transform:scale(0.8) translateX(15%) translateY(-10%)}.uv-scale-right-bottom.uv-is-hidden{opacity:0;-webkit-transform:scale(0.8) translateX(15%) translateY(10%);-moz-transform:scale(0.8) translateX(15%) translateY(10%);-ms-transform:scale(0.8) translateX(15%) translateY(10%);-o-transform:scale(0.8) translateX(15%) translateY(10%);transform:scale(0.8) translateX(15%) translateY(10%)}.uv-scale-left.uv-is-hidden{opacity:0;-webkit-transform:scale(0.8) translateX(-15%);-moz-transform:scale(0.8) translateX(-15%);-ms-transform:scale(0.8) translateX(-15%);-o-transform:scale(0.8) translateX(-15%);transform:scale(0.8) translateX(-15%)}.uv-scale-left-top.uv-is-hidden{opacity:0;-webkit-transform:scale(0.8) translateX(-15%) translateY(-10%);-moz-transform:scale(0.8) translateX(-15%) translateY(-10%);-ms-transform:scale(0.8) translateX(-15%) translateY(-10%);-o-transform:scale(0.8) translateX(-15%) translateY(-10%);transform:scale(0.8) translateX(-15%) translateY(-10%)}.uv-scale-left-bottom.uv-is-hidden{opacity:0;-webkit-transform:scale(0.8) translateX(-15%) translateY(10%);-moz-transform:scale(0.8) translateX(-15%) translateY(10%);-ms-transform:scale(0.8) translateX(-15%) translateY(10%);-o-transform:scale(0.8) translateX(-15%) translateY(10%);transform:scale(0.8) translateX(-15%) translateY(10%)}.uv-slide-top.uv-is-hidden{-webkit-transform:translateY(-100%);-moz-transform:translateY(-100%);-ms-transform:translateY(-100%);-o-transform:translateY(-100%);transform:translateY(-100%)}.uv-slide-bottom.uv-is-hidden{-webkit-transform:translateY(100%);-moz-transform:translateY(100%);-ms-transform:translateY(100%);-o-transform:translateY(100%);transform:translateY(100%)}.uv-slide-left.uv-is-hidden{-webkit-transform:translateX(-100%);-moz-transform:translateX(-100%);-ms-transform:translateX(-100%);-o-transform:translateX(-100%);transform:translateX(-100%)}.uv-slide-right.uv-is-hidden{-webkit-transform:translateX(100%);-moz-transform:translateX(100%);-ms-transform:translateX(100%);-o-transform:translateX(100%);transform:translateX(100%)}
+</style></head>
+<body class="page-ib_assets-index">
+<noscript id="no-js"><img alt="Managebac logo" src="//assets-0.managebac.com/assets/managebac-logo-81ceb5b7ed1631a989162a2c937fc9c0.svg?njs=10846779" style="width: 200px;" /><br />JavaScript must be enabled in order for you to use ManageBac.</noscript>
+
+<div id="pagewrapper">
+
+<div id="mailbox-container"></div>
+<div id="headerwrapper">
+<div class="clearfix" id="header">
+<div class="header-links">
+<div class="section">
+<span class="user-avatar"><div class="img-shadow avatar tiny"><img alt="User tiny" src="test_files_page_files/user_tiny-0529def52d87ff66c070f6c6daecc3ed.png"></div></span>
+<a class="user-name-10846779" href="https://telopeapark.managebac.com/account">Me (Me) ME</a>
+<span class="pipe"> </span>
+<a href="#" onclick="Mailbox.show(); return false;"><i class="fa fa-envelope-o"></i></a>
+<span id="messages-count">
+<a href="#" onclick="Mailbox.show(); return false;">2</a>
+</span>
+<span class="pipe"> </span>
+<i class="fa fa-sign-out"></i>
+<a href="https://telopeapark.managebac.com/logout">Logout</a>
+</div>
+</div>
+
+<h1>
+<div class="sub-header"><a href="https://telopeapark.managebac.com/">Telopea Park School</a></div>
+<a href="https://telopeapark.managebac.com/classes/10363179">IB MYP 2015 YEAR 9 QUANTUM (Year 9)</a>
+</h1>
+</div>
+<div id="menu">
+<ul class="clearfix">
+<li class="first">
+<a href="https://telopeapark.managebac.com/home"><span class="i sprite-menu_dashboard_white"></span>
+Dashboard
+</a></li>
+<li>
+<a href="https://telopeapark.managebac.com/profile"><span class="i sprite-menu_profile_white"></span>
+Profile
+</a></li>
+<li>
+<a href="https://telopeapark.managebac.com/groups/10236530"><span class="i sprite-menu_ib_white"></span>
+Middle Years Programme
+</a><div class="drop_menu" style="display:none; margin-top:0px ">
+<div class="inner">
+<p></p>
+<p><a href="https://telopeapark.managebac.com/groups/10236530/users/10846779/cas_activities"><span class="i sprite-world"></span> SA</a></p>
+<p></p>
+<p></p>
+<p><a href="https://telopeapark.managebac.com/groups/10236530/users/10846779/projects/10961690"><span class="i sprite-pp"></span> Personal Project</a></p>
+<p></p>
+</div>
+</div>
+</li>
+<li class="selected">
+<a href="https://telopeapark.managebac.com/users/10846779/classes"><span class="i sprite-menu_classes_white"></span>
+Classes
+<span class="caret"></span>
+</a><div class="drop_menu" style="display:none; margin-top:0px">
+<div class="inner">
+<p>
+<a href="https://telopeapark.managebac.com/classes/10363144/assets"><span class="ib tar nowrap" style="width: 45px">
+<span class="program-label myp">IB MYP</span>
+</span>
+PHYSICAL AND HEALTH EDUCATION Year 9/10 (Year 10)
+</a></p>
+<p>
+<a href="https://telopeapark.managebac.com/classes/10363026/assets"><span class="ib tar nowrap" style="width: 45px">
+<span class="program-label myp">IB MYP</span>
+</span>
+ENGLISH  Year 9 (Year 9)
+</a></p>
+<p>
+<a href="https://telopeapark.managebac.com/classes/10363081/assets"><span class="ib tar nowrap" style="width: 45px">
+<span class="program-label myp">IB MYP</span>
+</span>
+INDONESIAN Year 9 Phases 1, 2 (Year 9)
+</a></p>
+<p>
+<a href="https://telopeapark.managebac.com/classes/10363059/assets"><span class="ib tar nowrap" style="width: 45px">
+<span class="program-label myp">IB MYP</span>
+</span>
+GEOGRAPHY Year 9 (Line 7) (Year 9)
+</a></p>
+<p>
+<a href="https://telopeapark.managebac.com/classes/10363179/assets"><span class="ib tar nowrap" style="width: 45px">
+<span class="program-label myp">IB MYP</span>
+</span>
+2015 YEAR 9 QUANTUM (Year 9)
+</a></p>
+<p>
+<a href="https://telopeapark.managebac.com/classes/10363123/assets"><span class="ib tar nowrap" style="width: 45px">
+<span class="program-label myp">IB MYP</span>
+</span>
+MATHEMATICS Year 9 (Year 9)
+</a></p>
+</div>
+</div>
+</li>
+<li class="last">
+<a href="https://telopeapark.managebac.com/users/10846779/groups"><span class="i sprite-menu_groups_white"></span>Groups</a>
+</li>
+<!-- if parent end -->
+<li class="last right">
+<a class="help-link" href="https://telopeapark.managebac.com/help/manuals/3613" target="_blank"><span class="i sprite-menu_help_white"></span>
+Help
+</a></li>
+</ul>
+</div>
+</div>
+<div id="tabs">
+<ul>
+<li class="first ">
+<a href="https://telopeapark.managebac.com/classes/10363179"><span>Overview</span>
+</a></li>
+<li>
+<a href="https://telopeapark.managebac.com/classes/10363179/tasks"><span>Tasks</span>
+</a></li>
+<!-- linked tok from ib group -->
+<li>
+<a href="https://telopeapark.managebac.com/classes/10363179/messages"><span>Messages</span>
+</a></li>
+<li>
+<a href="https://telopeapark.managebac.com/classes/10363179/calendar"><span>Calendar</span>
+</a></li>
+<li class="selected">
+<a href="https://telopeapark.managebac.com/classes/10363179/assets"><span>Files</span>
+</a></li>
+<li>
+<a href="https://telopeapark.managebac.com/classes/10363179/members"><span>Students</span>
+</a></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+<div id="content">
+<div id="main">
+<div id="left-column">
+
+<div id="left">
+<div class="header " id="page-header"><h3>Files</h3>
+</div>
+<div class="asset-row folder" id="new-folder-form-template" style="display: none;">
+<div class="assets-cell name-cell">
+<div class="inner-table">
+<div class="assets-cell nopadding"><img alt="Folder" src="test_files_page_files/folder-8692e72c2a945be616df69d625568241.png"></div>
+<div class="assets-cell nopadding" style="width: 100%">
+<form accept-charset="UTF-8" action="/classes/10363179/folders" class="simple_form inverse nowrap" data-remote="true" id="new_folder" method="post" novalidate="novalidate"><div style="display:none"><input name="utf8" value="✓" type="hidden"></div><div class="input string required folder_name ib" style="margin-bottom: 0;"><input class="string required" id="folder_name" name="folder[name]" style="min-width: 300px; margin-right: 10px;" type="text"></div>
+<div class="ib">
+<input data-disable-with="Processing..." name="commit" value="Add Folder" type="submit"><span class="button_or">or <a href="#" onclick="cancelNewFolder(); return false;">Cancel</a></span>
+</div>
+</form>
+
+</div>
+</div>
+</div>
+<div class="assets-cell size-cell"></div>
+<div class="assets-cell time-cell"></div>
+</div>
+
+<div class="assets-layout">
+<div class="asset-row header-row">
+<div class="assets-cell name-cell nowrap"><a class="sort_link" href="https://telopeapark.managebac.com/classes/10363179/assets?group_id=10363179&amp;q%5Bs%5D=file+asc">Name</a></div>
+<div class="assets-cell size-cell nowrap"><a class="sort_link" href="https://telopeapark.managebac.com/classes/10363179/assets?group_id=10363179&amp;q%5Bs%5D=file_size+asc">File Size</a></div>
+<div class="assets-cell time-cell nowrap"><a class="sort_link asc" href="https://telopeapark.managebac.com/classes/10363179/assets?group_id=10363179&amp;q%5Bs%5D=created_at+desc">Modified</a></div>
+</div>
+<div class="asset-row folder" id="folder_97558">
+<div class="assets-cell name-cell">
+<div class="inner-table">
+<div class="assets-cell nopadding">
+<img alt="Folder" src="test_files_page_files/folder-8692e72c2a945be616df69d625568241.png">
+</div>
+<div class="assets-cell nopadding">
+<form accept-charset="UTF-8" action="/classes/10363179/folders/97558" class="simple_form inverse nowrap" data-remote="true" id="edit_folder_97558" method="post" novalidate="novalidate" style="display: none;"><div style="display:none"><input name="utf8" value="✓" type="hidden"><input name="_method" value="patch" type="hidden"></div><div class="input string required folder_name ib" style="margin-bottom: 0;"><input class="string required" id="folder_name" name="folder[name]" style="min-width: 300px; margin-right: 10px;" value="CREST 2015" type="text"></div>
+<input data-disable-with="Processing..." name="commit" value="Save Changes" type="submit"><span class="button_or">or <a href="#" onclick="cancelFolderEdit('folder_97558'); return false;">Cancel</a></span>
+</form>
+
+<a class="folder-name" href="https://telopeapark.managebac.com/classes/10363179/assets?folder_id=97558">CREST 2015</a>
+</div>
+</div>
+</div>
+<div class="assets-cell size-cell">Folder</div>
+<div class="assets-cell time-cell">Feb 17, 2015 at 3:49 PM</div>
+</div>
+
+<div class="asset-row folder" id="folder_104569">
+<div class="assets-cell name-cell">
+<div class="inner-table">
+<div class="assets-cell nopadding">
+<img alt="Folder" src="test_files_page_files/folder-8692e72c2a945be616df69d625568241.png">
+</div>
+<div class="assets-cell nopadding">
+<form accept-charset="UTF-8" action="/classes/10363179/folders/104569" class="simple_form inverse nowrap" data-remote="true" id="edit_folder_104569" method="post" novalidate="novalidate" style="display: none;"><div style="display:none"><input name="utf8" value="✓" type="hidden"><input name="_method" value="patch" type="hidden"></div><div class="input string required folder_name ib" style="margin-bottom: 0;"><input class="string required" id="folder_name" name="folder[name]" style="min-width: 300px; margin-right: 10px;" value="Yr9 BIOLOGY " type="text"></div>
+<input data-disable-with="Processing..." name="commit" value="Save Changes" type="submit"><span class="button_or">or <a href="#" onclick="cancelFolderEdit('folder_104569'); return false;">Cancel</a></span>
+</form>
+
+<a class="folder-name" href="https://telopeapark.managebac.com/classes/10363179/assets?folder_id=104569">Yr9 BIOLOGY </a>
+</div>
+</div>
+</div>
+<div class="assets-cell size-cell">Folder</div>
+<div class="assets-cell time-cell">Mar 16, 2015 at 11:11 AM</div>
+</div>
+
+
+<div class="asset-row file" id="asset_17015964">
+<div class="assets-cell name-cell">
+<div class="inner-table" style="display: table">
+<div class="assets-cell nopadding" style="display: table-cell">
+<img alt="File extension doc" src="test_files_page_files/file_extension_doc-5fdc7efc4fad6ce6ec7514bb737cb1dd.png">
+</div>
+<div class="assets-cell nopadding" style="display: table-cell">
+<a class="file-name" href="https://cf.managebac.com/uploads/asset/file/17015964/CREST_Timeline2015.doc?&amp;Expires=1428013874&amp;Signature=Zq5l6CKM0AYQZCZV29L253CtwhgwUUrbMKC20YcWqPQNm%7E2Ft1fyo26zaJZ51S2eK4UmqTs5G%7EE3Memj3wNeWluYkDJigOI4lH5fkvIUGyhEJpZTmn%7EFKJJ2AQ8e3u61fY15YCdgpopMvASXzdK7SByyo4qsuqtDpg5OYE-0t-Epj7oAfwmpN5FXZaulLjufwsc%7Elx7U6bf6B%7EQlnXRGiVBVbDA7yqWn0E0qwOQxy6MvABLuvzN44M3kFuiyc19doPEOdTlx2fMCjGAplgzcjRgM6hKFpHbHag%7E17OPdEuV8xpdQvHEF-kcFHUx%7EE%7EcCbygI5oK0MpFkfFYRJNZ0xA__&amp;Key-Pair-Id=APKAIONV4W2WDGROD6WA">CREST_Timeline2015.doc</a>
+<p class="commentary">
+ - CREST Timeline 2015
+</p>
+<p class="details">
+by
+Person
+</p>
+</div>
+</div>
+</div>
+<div class="assets-cell size-cell">90 KB</div>
+<div class="assets-cell time-cell">Feb 17, 2015 at 3:48 PM</div>
+</div>
+
+<div class="asset-row file" id="asset_17040713">
+<div class="assets-cell name-cell">
+<div class="inner-table" style="display: table">
+<div class="assets-cell nopadding" style="display: table-cell">
+<img alt="File extension doc" src="test_files_page_files/file_extension_doc-5fdc7efc4fad6ce6ec7514bb737cb1dd.png">
+</div>
+<div class="assets-cell nopadding" style="display: table-cell">
+<a class="file-name" href="https://cf.managebac.com/uploads/asset/file/17040713/CREST_Timeline2015.doc?&amp;Expires=1428013874&amp;Signature=hn4HGS7aJjamXqRIu-UXwjb9ahILqJk3VXodCETXJ3QxVOeu0d5kwnBII-SiIhsleC6M6QhyH6yl0QaV2vNQKk46GAvNXO7DepWUK9Cx4w9TNMdBRuOj5W7DGL7HvDoQGIIE94e8KaepC4T7LLCA2cDiP%7EpRCEY0sRM4eysKFsYLIFyt3uOYIJDS9X3mIXmOtQarwEQLCOh0abLmZO71bgml-8Y2v%7Eu1j8GAQiEv6q2x19DctzlKdFiWdQogSftjeva9fNg5b8xorq63Q4ul02o-laU3AUPf-k3b6KZqIcB7cqZQbNqnJ66ycnY0J7yWl5hyX2d72gAO%7EfN6NkkBhg__&amp;Key-Pair-Id=APKAIONV4W2WDGROD6WA">CREST_Timeline2015.doc</a>
+<p class="commentary">
+<strong>
+Task:
+</strong>
+<a class="grey" href="https://telopeapark.managebac.com/classes/10363179/events/12713590">CREST: D Task</a>
+
+</p>
+<p class="details">
+by
+Person
+</p>
+</div>
+</div>
+</div>
+<div class="assets-cell size-cell">90 KB</div>
+<div class="assets-cell time-cell">Feb 19, 2015 at 2:33 PM</div>
+</div>
+
+<div class="asset-row file" id="asset_17054328">
+<div class="assets-cell name-cell">
+<div class="inner-table" style="display: table">
+<div class="assets-cell nopadding" style="display: table-cell">
+<img alt="File extension pdf" src="test_files_page_files/file_extension_pdf-bc43856de42fe3e4b82efb03b1d5d7ba.png">
+</div>
+<div class="assets-cell nopadding" style="display: table-cell">
+<a class="file-name" href="https://cf.managebac.com/uploads/asset/file/17054328/The_Nervous_System_worksheet_Relief_Lesson_Tues_17_Feb.pdf?&amp;Expires=1428013874&amp;Signature=hDYwjq9XMV0AJkpW932EfV6sLnw9tpQltU2Laks6FvTzZt%7EeZaXG07EAcQ0jWMCyzZwY6kNGhUVuAY-x26wuXW4cH8x4O5AECKtSLlsSMCl1X%7EEcQ0kBRHLQZfXSnjmgw8uKR6H0Vc3uvd7vnlps058aKhdFE92aCLpxQ1754RQ7nkDPWsOSBRQ4Ese2v2v22GkHnBjI3vhzWNu3TWIUNccH5PlxfaJZhcSsZnmySC-ffAngkSMbhbAl5t0w0ZwXr-MI65fyj%7E9%7EMfj3u1isoP5BXZs5dfaHu4kBnuukBxAFVfrTcEhnUOhiT0MCeruAx-TjadjrmHYO7lrGTtceLQ__&amp;Key-Pair-Id=APKAIONV4W2WDGROD6WA">The_Nervous_System_worksheet_Relief_Lesson…</a>
+<p class="commentary">
+<strong>
+Deadline:
+</strong>
+<a class="grey" href="https://telopeapark.managebac.com/classes/10363179/events/12717981">Relief Lesson: The Nervous System</a>
+
+</p>
+<p class="details">
+by
+Person
+</p>
+</div>
+</div>
+</div>
+<div class="assets-cell size-cell">300 KB</div>
+<div class="assets-cell time-cell">Feb 20, 2015 at 4:10 PM</div>
+</div>
+
+<div class="asset-row file" id="asset_17054377">
+<div class="assets-cell name-cell">
+<div class="inner-table" style="display: table">
+<div class="assets-cell nopadding" style="display: table-cell">
+<img alt="File extension pdf" src="test_files_page_files/file_extension_pdf-bc43856de42fe3e4b82efb03b1d5d7ba.png">
+</div>
+<div class="assets-cell nopadding" style="display: table-cell">
+<a class="file-name" href="https://cf.managebac.com/uploads/asset/file/17054377/The_Nervous_System_worksheet_Relief_Lesson_Tues_17_Feb.pdf?&amp;Expires=1428013874&amp;Signature=HLVY0he7eqcDWj49l0R7VVgUkU56luDWA2pbdlx0ms8MReMQNqdfSW-rHgdZUm1wgAAV4bHZtRfGIKBx3yoeGpLLqei4EfWh-j0hmtSvcqqFw2WOezhQDRYNQSqCuE4sy33jQYon7lH7%7EMgK6xwFY%7EvijWJlw7XsvQzuXctdNpriJouxiBTevzMncghplOyi-6koqt1DYD4QupiasbgMR3%7E4rq%7EMvyuXCqemJHABQpzM7GTi%7EskJgN9dgdkV8RM7wds69dON6EKztDXf5PQQcjJKAEX0Z0uM9Z5KTSNOmOIS7QzTe4powYnBORgC7D8CMHqRxNEJEc3gm6OpZ4VTPA__&amp;Key-Pair-Id=APKAIONV4W2WDGROD6WA">The_Nervous_System_worksheet_Relief_Lesson…</a>
+<p class="commentary">
+
+</p>
+<p class="details">
+by
+Person
+</p>
+</div>
+</div>
+</div>
+<div class="assets-cell size-cell">300 KB</div>
+<div class="assets-cell time-cell">Feb 20, 2015 at 4:18 PM</div>
+</div>
+
+<div class="asset-row file" id="asset_17106834">
+<div class="assets-cell name-cell">
+<div class="inner-table" style="display: table">
+<div class="assets-cell nopadding" style="display: table-cell">
+<img alt="File extension docx" src="test_files_page_files/file_extension_docx-5fdc7efc4fad6ce6ec7514bb737cb1dd.png">
+</div>
+<div class="assets-cell nopadding" style="display: table-cell">
+<a class="file-name" href="https://cf.managebac.com/uploads/asset/file/17106834/Year_9Q_Enzyme_Action_experiment.docx?&amp;Expires=1428013874&amp;Signature=iPteTPgUzw7pdabvhjtx4CoC8vdxccbIt%7ECYn-vM2IsqtajY1ZRU5tA-Eh3loaPRU4w5bM7x8rSEQnLw9N6Lb8AJQ7JtpV%7En1udQTohkh3%7E27%7EJe9j0Ycy6VaCKg6V-VR0XuaGLZ5zCkWsU2Ur97cyJ-Rjm%7EQh-CIFkoU8shL21CtB%7EIuOBT4TleidLhxspHI5owlNxwcv-IGgl84Ax-YoqrHXE-0hkgCuBoSPYHlve0atYcQzGJRO-J7RK0yllWRhmhFN5VVRoPfqLDC2C%7ER4cQGG10g-isbQiCbUgQD2DtM-eekcNiw2oV5jmoMn2x0VJaPQbExDKsB0puShXaxw__&amp;Key-Pair-Id=APKAIONV4W2WDGROD6WA">Year_9Q_Enzyme_Action_experiment.docx</a>
+<p class="commentary">
+<strong>
+Task:
+</strong>
+<a class="grey" href="https://telopeapark.managebac.com/classes/10363179/events/12736833">Data Analysis - what type of data is this?</a>
+
+</p>
+<p class="details">
+by
+Person
+</p>
+</div>
+</div>
+</div>
+<div class="assets-cell size-cell">900 KB</div>
+<div class="assets-cell time-cell">Feb 25, 2015 at 9:37 AM</div>
+</div>
+
+<div class="asset-row file" id="asset_17129045">
+<div class="assets-cell name-cell">
+<div class="inner-table" style="display: table">
+<div class="assets-cell nopadding" style="display: table-cell">
+<img alt="File extension pps" src="test_files_page_files/file_extension_pps-71a7c87d9e5a196d0bcd00fba8c263db.png">
+</div>
+<div class="assets-cell nopadding" style="display: table-cell">
+<a class="file-name" href="https://cf.managebac.com/uploads/asset/file/17129045/Hormones_Boardworks.ppt?&amp;Expires=1428013874&amp;Signature=iQwAjv3rdjhnShTBoex2F6Fp568FKCDXJ0udB1%7EvK4V3V7Hl-4uf-%7EyRj6sIU9FxzS5xKttifcQXdZvi%7EisbukcXk9AcZAD%7EM7HubnRBl%7EkVeL6ifHljsGpYVhHc8Y4Cyuy66-tnI5PwyB-ngd1GzuRPqvhowAQY2OA7dHcQobPJfosdTWk1oyxR2tnPxQ6Sa2jJM9rzhGFRBuJr6gsA7Owkeow5JodLBuOGGvs-hUR%7EHPxq8NXaAnhn25uzTfCWc14pE24UMoCeURgkm8twdbgNE6UF0Ff3%7EKog7JcgqoG2pE3JXP5USAUS%7Ex13eZ7KMRMUgjDbOQ1eh%7EwR6fe9Mw__&amp;Key-Pair-Id=APKAIONV4W2WDGROD6WA">Hormones_Boardworks.ppt</a>
+<p class="commentary">
+<strong>
+Deadline:
+</strong>
+<a class="grey" href="https://telopeapark.managebac.com/classes/10363179/events/12736849">Revise: The Endocrine System</a>
+
+</p>
+<p class="details">
+by
+Person
+</p>
+</div>
+</div>
+</div>
+<div class="assets-cell size-cell">1 MB</div>
+<div class="assets-cell time-cell">Feb 26, 2015 at 4:37 PM</div>
+</div>
+
+<div class="asset-row file" id="asset_17129046">
+<div class="assets-cell name-cell">
+<div class="inner-table" style="display: table">
+<div class="assets-cell nopadding" style="display: table-cell">
+<img alt="File extension pps" src="test_files_page_files/file_extension_pps-71a7c87d9e5a196d0bcd00fba8c263db.png">
+</div>
+<div class="assets-cell nopadding" style="display: table-cell">
+<a class="file-name" href="https://cf.managebac.com/uploads/asset/file/17129046/Hormones_Boardworks.ppt?&amp;Expires=1428013874&amp;Signature=Lr4KpCJMds03FpNZTb1NkrrRY3CvzReJkX%7Egc2abyyg3sxxd2U8NpTfTlcUKSDlN9WIlLaXcAFkp4DzIrmgidQEXENbChjaql10LURX5HCWN02QmGx--hK-Hcc5kPi7KEwyGJMwmHbKREYjlH2oG16UxgXqwYC%7EjIEtiTbzC1r9Oe7h5rAM3KbtKOJwOQxPGRZHIHtuZ6mJOUQDS8weESkYzfLNro4KP%7EiwRQaFHV2S2DwXCT6UXgChfIDOFeICTzbMhrlve3Dzci8xliOTYOd7hD9M9j0UlQs67ylxhnB%7Ew-M-%7EDGhXozPUdHOY3Yk5wpvdy62WhZw7dMSTRoptww__&amp;Key-Pair-Id=APKAIONV4W2WDGROD6WA">Hormones_Boardworks.ppt</a>
+<p class="commentary">
+<strong>
+Deadline:
+</strong>
+<a class="grey" href="https://telopeapark.managebac.com/classes/10363176/events/12736850">Revise: The Endocrine System</a>
+
+</p>
+<p class="details">
+by
+Person
+</p>
+</div>
+</div>
+</div>
+<div class="assets-cell size-cell">1 MB</div>
+<div class="assets-cell time-cell">Feb 26, 2015 at 4:37 PM</div>
+</div>
+
+<div class="asset-row file" id="asset_17305966">
+<div class="assets-cell name-cell">
+<div class="inner-table" style="display: table">
+<div class="assets-cell nopadding" style="display: table-cell">
+<img alt="File extension pdf" src="test_files_page_files/file_extension_pdf-bc43856de42fe3e4b82efb03b1d5d7ba.png">
+</div>
+<div class="assets-cell nopadding" style="display: table-cell">
+<a class="file-name" href="https://cf.managebac.com/uploads/asset/file/17305966/Diffusion_and_Osmosis_2_.pdf?&amp;Expires=1428013874&amp;Signature=LqOy64yDF41Ju6rgAsKjrIawGuJcbub2vbyBZjw6Ey7pk3tBdfGW7DqFJpGLhKfAmbc6sYT41J-id2OsLHz6at9IdnF-7ppaOICiNK1FWGHQJblbLvw8YW8MIe5v93eY4NHhaQMh1dkmD--fcuhuKkR3sJXKQ3yIITLUmvk74eGsZqNONi5vCjJf1hMtuK4CuYEFkw1c26GbVxbG5m7ZNGvQGjnSebUcPUh9jqWsh6pGGArxRE4PXcZfIMmU0s7V0R8U0B7YrWmZPtNa3isgdhczLyLHBH76ymUaBf8b%7E4v3N-YTO56bKAoaMPzWi2CAjqNIH4gIeWqktQRujHppCw__&amp;Key-Pair-Id=APKAIONV4W2WDGROD6WA">Diffusion_and_Osmosis_2_.pdf</a>
+<p class="commentary">
+<strong>
+Deadline:
+</strong>
+<a class="grey" href="https://telopeapark.managebac.com/classes/10363179/events/12798056">Practical: Osmosis and Diffusion </a>
+
+</p>
+<p class="details">
+by
+Person
+</p>
+</div>
+</div>
+</div>
+<div class="assets-cell size-cell">70 KB</div>
+<div class="assets-cell time-cell">Mar 10, 2015 at 8:15 AM</div>
+</div>
+
+<div class="asset-row file" id="asset_17305967">
+<div class="assets-cell name-cell">
+<div class="inner-table" style="display: table">
+<div class="assets-cell nopadding" style="display: table-cell">
+<img alt="File extension pdf" src="test_files_page_files/file_extension_pdf-bc43856de42fe3e4b82efb03b1d5d7ba.png">
+</div>
+<div class="assets-cell nopadding" style="display: table-cell">
+<a class="file-name" href="https://cf.managebac.com/uploads/asset/file/17305967/Diffusion_and_Osmosis_2_.pdf?&amp;Expires=1428013874&amp;Signature=WMwXkoOTNN9aIqdYIDMYlgZq%7En1Gj9Kp97gBOAk3SE6uMDV9eyD-o3gqT4bzbssm6g4T82o8B4OBW4YesyLf%7El-qi2nqL86VpNvOq%7Es2olD2HAvaBEjd4C9g50uxdRSeDjxndqu7uWnGwuvmu-JT6-6IupGAHkyGMXWkNWkuv9zPKvuilG5g6wovkDUURZO7UKWKPscjUTZix2L%7EujXmBPv9TxvO9cu-Yta8j4Pt9qUkfpmjDybC7IIPLhgzOpt6Nnytri87TERF%7EzEvr4ahRTfhn42Gvq6wlslfSu3Acm822EAJI%7EzLpuqGIvdeyvSS6xf00Ek2my46hG-adomkjw__&amp;Key-Pair-Id=APKAIONV4W2WDGROD6WA">Diffusion_and_Osmosis_2_.pdf</a>
+<p class="commentary">
+<strong>
+Deadline:
+</strong>
+<a class="grey" href="https://telopeapark.managebac.com/classes/10363176/events/12798057">Practical: Osmosis and Diffusion </a>
+
+</p>
+<p class="details">
+by
+Person
+</p>
+</div>
+</div>
+</div>
+<div class="assets-cell size-cell">70 KB</div>
+<div class="assets-cell time-cell">Mar 10, 2015 at 8:15 AM</div>
+</div>
+
+<div class="asset-row file" id="asset_17346576">
+<div class="assets-cell name-cell">
+<div class="inner-table" style="display: table">
+<div class="assets-cell nopadding" style="display: table-cell">
+<img alt="File extension docx" src="test_files_page_files/file_extension_docx-5fdc7efc4fad6ce6ec7514bb737cb1dd.png">
+</div>
+<div class="assets-cell nopadding" style="display: table-cell">
+<a class="file-name" href="https://cf.managebac.com/uploads/asset/file/17346576/Guidelines_on_how_to_write_a_prac_report.docx?&amp;Expires=1428013874&amp;Signature=aENwVEsTcCWMbs31bNUbM8KoRX7V3C6xdJsgfMKSpWuViOE3eXQPJtcgYPLik%7EBEdmtmMSjisfQt5mLFY2%7E6Jyd5a1PencV15zwc0pV0v8STc-3aRTLOQkTn4spmapJkWNAX7iD3jWhgwJY%7EfN8B2r-LHqXPUVzkSusBJ77hxLfJfQ3dSel8hAWAhzYfTeuxufmKPAtWPAMlm5wyXV7ebEdIy%7EIcOE1AoqFIZ7ojzTm-x1cqecghBBPcBlu%7EdvANPyyXzgA8P2f57KuNh%7Ez15CDO9g2dHAiftT0XS2aundGu4dzaohCW5wzEJAVrZAm2U7EUJkGN063UPSQpIxPRGw__&amp;Key-Pair-Id=APKAIONV4W2WDGROD6WA">Guidelines_on_how_to_write_a_prac_report.docx</a>
+<p class="commentary">
+<strong>
+Deadline:
+</strong>
+<a class="grey" href="https://telopeapark.managebac.com/classes/10363179/events/12798056">Practical: Osmosis and Diffusion </a>
+
+</p>
+<p class="details">
+by
+Person
+</p>
+</div>
+</div>
+</div>
+<div class="assets-cell size-cell">20 KB</div>
+<div class="assets-cell time-cell">Mar 12, 2015 at 11:38 AM</div>
+</div>
+
+
+<div class="pagination"><span class="previous_page disabled">← Previous</span> <em class="current">1</em> <a rel="next" href="https://telopeapark.managebac.com/classes/10363179/assets?group_id=10363179&amp;page=2&amp;q%5Bs%5D=created_at+asc">2</a> <a href="https://telopeapark.managebac.com/classes/10363179/assets?group_id=10363179&amp;page=3&amp;q%5Bs%5D=created_at+asc">3</a> <a class="next_page" rel="next" href="https://telopeapark.managebac.com/classes/10363179/assets?group_id=10363179&amp;page=2&amp;q%5Bs%5D=created_at+asc">Next →</a></div>
+</div>
+<script type="text/javascript">
+  //<![CDATA[
+    jQuery(function($) {
+      if (!false) {
+        return
+      }
+      insertNewFolder = function() {
+        if ($('#new-folder-form').length == 0) {
+          var new_form = $('#new-folder-form-template').clone();
+          new_form.attr('id', 'new-folder-form');
+          new_form.insertAfter($('.assets-layout .asset-row.header-row'));
+          new_form.show();
+          new_form.find(':text').focus();
+        }
+      }
+    
+      cancelNewFolder = function() {
+        $('#new-folder-form').remove();
+      }
+    
+      showFolderEdit = function(folder) {
+        $('#' + folder).find('form').show().find(':text').focus();;
+        $('#' + folder).find('a.folder-name').hide();
+      }
+    
+      cancelFolderEdit = function(folder) {
+        $('#' + folder).find('form').hide();
+        $('#' + folder).find('a.folder-name').show();
+      }
+    
+      bindDraggableItems = function(draggables) {
+        draggables.draggable({
+          revert: 'invalid',
+          distance: 10,
+          helper: function(e) {
+            var clone = $(e.target).closest('.asset-row').find('.assets-cell').first().clone();
+            clone.find('.actions-wrapper').remove();
+            return clone;
+          },
+          drag: function(event, ui) {
+          }
+        });
+      }
+    
+      bindDroppableItems = function(droppables) {
+        droppables.droppable({
+          activeClass: "ui-state-active",
+          hoverClass: "ui-state-hover",
+          drop: function(event, ui) {
+            ui.draggable.hide();
+            var id = ui.draggable.attr('id').replace(/(folder|asset)_/, '');
+            var parent_id = $(this).attr('id').replace(/(folder|asset)_/, '');
+            if (ui.draggable.hasClass('folder')) {
+              var url = "/classes/10363179/folders/move";
+            } else {
+              var url = "/classes/10363179/assets/move";
+            }
+            $.post(url, { id: id, parent_id: parent_id });
+          }
+        });
+      }
+    
+      disableFormControls = function(form) {
+        // $(form).find('input:text').attr('readonly', true);
+        // $(form).find('input:submit').attr('disabled', 'disabled');
+        // $(form).find('input:submit').val('Please wait');
+      }
+    
+      bindDraggableItems($('.asset-row.file, .asset-row.folder'));
+      bindDroppableItems($(".asset-row.folder"));
+    })
+  //]]>
+</script>
+
+
+</div>
+</div>
+<div id="right-column">
+<div id="right">
+<form accept-charset="UTF-8" action="" class="simple_form new_q" id="new_q" method="get" novalidate="novalidate"><div style="display:none"><input name="utf8" value="✓" type="hidden"></div><fieldset>
+<div></div>
+<input id="searching" name="searching" value="yes" type="hidden">
+<input id="q_file_cont" name="q[file_cont]" placeholder="Search by file name" style=" width: 100%" type="text">
+<span class="error" id="search-error" style="display: none">Please enter at least 3 characters.</span>
+</fieldset>
+<div class="button">
+<input data-disable-with="Processing..." name="commit" value="Search" type="submit"><span class="button_or">or <a href="https://telopeapark.managebac.com/classes/10363179/assets">Reset</a></span>
+</div>
+</form>
+
+<div id="categories-editor"><h2>
+<span style="float: right">
+<img alt="Spinner" id="categories-spinner" src="test_files_page_files/spinner-2aa6231d8d490b0b96740aef4ea644c1.gif" style="display: none; vertical-align: middle;">
+
+</span>
+Categories
+</h2>
+<ul class="selection" id="categories-list">
+<li class="default selected"><a href="https://telopeapark.managebac.com/classes/10363179/assets">All categories</a></li>
+</ul>
+
+<script type="text/javascript">
+  //<![CDATA[
+    renameCategory = function(sender) {
+      var p = prompt('Rename this category', $(sender).closest('li').find('a.category').text());
+      if (p != null && $.trim(p) != '') {
+        $(sender).closest('li').find('a.category').text(p);
+      }
+    }
+  //]]>
+</script>
+</div>
+<h2>Authors</h2>
+<ul class="selection assets_authors">
+<li class="default selected">
+<a href="https://telopeapark.managebac.com/classes/10363179/assets">All Authors</a>
+</li>
+<li class="">
+<a href="https://telopeapark.managebac.com/classes/10363179/assets?author_id=10807440"><img alt="Tiny mad scientist original" src="test_files_page_files/tiny_Mad_Scientist_original.JPG">Person</a>
+</li>
+</ul>
+<script type="text/javascript">
+  //<![CDATA[
+    jQuery(function($) {
+      checkFileNameLength = function() {
+        form = $('#q_file_cont').closest('form');
+        if ($('#q_file_cont').val().length < 3) {
+          $('#search-error').show();
+          return false;
+        } else {
+          $('#search-error').hide();
+          return true;
+        }
+      }
+      form = $('#q_file_cont').closest('form').on('submit', checkFileNameLength)
+      $('#q_file_cont').on('keyup', checkFileNameLength);
+      $('#q_file_cont').on('focus', checkFileNameLength);
+    })
+  //]]>
+</script>
+
+
+</div>
+</div>
+</div>
+</div>
+<div id="clearfooter" style="display: block; height: 50px;"></div>
+</div>
+<div class="short" id="footer">
+<div class="fr">
+<span class="i sprite-toolbox"></span>
+<a href="https://telopeapark.managebac.com/users/welcome">Quick Start Checklist</a>
+<span class="pipe"> </span>
+<span class="i sprite-help_icon"></span>
+<a href="https://telopeapark.managebac.com/help/support_request" target="_blank">Support Request</a>
+</div>
+<div>
+Copyright © 2006 – 2015 Telopea Park School.
+<a href="http://www.managebac.com/">ManageBac</a>
+</div>
+</div>
+<div id="modal-box-wrapper"></div>
+<div data-timeout="3600" id="auto-logout-popup" style="display: none">
+<div class="modal-popup" style="width: 420px">
+<h2>Logout Reminder</h2>
+<div class="body">
+<p>You will be automatically logged out in 5 minutes due to inactivity.</p>
+<div class="animated-progress-bar">
+<div class="bar" style="width: 0%"></div>
+</div>
+</div>
+<div class="footer"></div>
+<p class="tac" id="buttons">
+<a class="app-button stay-logged-in" data-remote="true" href="https://telopeapark.managebac.com/stay_logged_in">Stay Logged In</a>
+or
+<a class="app-button log-out" href="#">Logout</a>
+</p>
+</div>
+</div>
+
+
+      <script type="text/javascript">
+        var uvOptions = {};
+        (function() {
+        var uv = document.createElement('script'); uv.type = 'text/javascript'; uv.async = true;
+        uv.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'widget.uservoice.com/BPVzDqeXVQdr1Wy98170dg.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(uv, s);
+        })();
+      </script>
+    
+
+
+</body></html>

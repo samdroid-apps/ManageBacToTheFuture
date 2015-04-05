@@ -4,3 +4,4 @@ HTTPretty
 redis
 Sphinx
 Flask
+python-dateutil

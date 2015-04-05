@@ -5,3 +5,4 @@ redis
 Sphinx
 Flask
 python-dateutil
+enum34

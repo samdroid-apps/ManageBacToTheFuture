@@ -24,7 +24,7 @@ from dateutil.parser import parse
 import errors
 
 
-red = redis.StrictRedis(host='localhost', port=6379, db=0)
+red = redis.StrictRedis(host='redis', port=6379, db=0)
 try:
     red.get('test')
 except ConnectionError:

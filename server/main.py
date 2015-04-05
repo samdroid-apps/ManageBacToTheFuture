@@ -14,10 +14,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from requests import TooManyRedirects
 from flask import Flask, jsonify, request
 from managebac.files import Folder, File
 from managebac.calender import LazyEvent
-from managebac.message import LazyMessage
+from managebac.message import LazyMessage, Message
 from managebac import login, Class, Classes
 from managebac.errors import BadLogin, BadToken, ManageBacCommunicationException
 
@@ -28,6 +29,7 @@ def cross_domain(response):
     h = response.headers
     h['Access-Control-Allow-Origin'] = '*'
     h['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS, POST'
+    h['Access-Control-Allow-Headers'] = 'X-Token'
     h['Access-Control-Max-Age'] = '0'
     return response
 
@@ -38,13 +40,13 @@ def catch_errors(f):
             return f(*args, **kwargs)
         except BadLogin:
             return jsonify(type='BadLogin',
-                           text='Incorrect username or password')
-        except BadToken:
+                           text='Incorrect username or password'), 403
+        except (BadToken, TooManyRedirects):
             return jsonify(type='BadToken',
-                           text='Please reauthenticate')
+                           text='Please reauthenticate'), 403
         except ManageBacCommunicationException:
             return jsonify(type='ManageBacCommunicationException',
-                           text='Can\'t reach managebac right now')
+                           text='Can\'t reach managebac right now'), 500
     closure.__name__ = 'error_hardened_' + f.__name__
     return closure
 
@@ -90,10 +92,13 @@ def class_endpoint(class_id, token, *args, **kwargs):
 
     for x in objs:
         d = x.__dict__
-        d['time'] = x.time.isoformat()
 
         if isinstance(x, Folder):
             d['__name__'] = 'Folder'
+            x.load(token)
+            d['files'] = [f.__dict__ for f in x]
+            d['id'] = d['id_']
+            del d['id_']
         if isinstance(x, File):
             d['__name__'] = 'File'
         if isinstance(x, LazyEvent):
@@ -106,10 +111,40 @@ def class_endpoint(class_id, token, *args, **kwargs):
             d['__name__'] = 'Message'
             d['__lazy__'] = True
             d['comments'] = [c.__dict__ for c in x.comments]
+            d['id'] = d['id_']
+            del d['id_']
+
+        d['time'] = x.time.isoformat()
 
         dicts.append(d)
 
     return jsonify(items=dicts)
+
+
+@app.route('/classes/<int:class_id>/messages/<int:id_>/comments',
+            methods=['POST'])
+@catch_errors
+@authenticated
+def post_comment(class_id, id_, token, *args, **kwargs):
+    m = Message('https://telopeapark.managebac.com/groups/{}'
+                '/messages/{}'.format(class_id, id_), token)
+    m.post_comment(request.form['body'], token)
+    return jsonify(ok=True)
+
+@app.route('/classes/<int:class_id>/messages/<int:id_>')
+@catch_errors
+@authenticated
+def get_message(class_id, id_, token, *args, **kwargs):
+    m = Message('https://telopeapark.managebac.com/groups/{}'
+                '/messages/{}'.format(class_id, id_), token)
+
+    d = m.__dict__
+    d['__name__'] = 'Message'
+    d['comments'] = [c.__dict__ for c in m.comments]
+    d['id'] = d['id_']
+    del d['id_']
+    return jsonify(message=d)
+
 
 if __name__ == '__main__':
     # print '-' * 80

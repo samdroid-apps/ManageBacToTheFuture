@@ -45,8 +45,6 @@ class Files(list):
     '''
 
     def __init__(self, url, token, page=1, folder_id=None):
-        '''
-        '''
 
         self.class_id = int(re.search('/classes/([0-9]+)/', url).group(1))
         self.folder_id = folder_id
@@ -56,6 +54,8 @@ class Files(list):
         if r.ok and r.status_code == 200:
             soup = BeautifulSoup(r.text)
             root = soup.find(class_='assets-layout')
+            if root is None:
+                return # Yay!  Empty!
 
             for folder in root.findAll(class_='folder'):
                 a = folder.find(class_='folder-name')
@@ -63,6 +63,7 @@ class Files(list):
 
                 self.append(Folder(
                     id_=int(id_),
+                    class_id=self.class_id,
                     name=a.text,
                     time=parse(folder.find(class_='time-cell').text)
                 ))
@@ -90,14 +91,15 @@ class Files(list):
             raise errors.ManageBacCommunicationException
 
 
-class Folder():
+class Folder(Files):
     '''
-    A object that is a child of :class:`Files`
+    A object that is a a lazy loaded version of :class:`Files`
 
     The constructor makes a new Folder from the kwargs.
 
     Args (as kwargs):
         * `id_` (int)
+        * `class_id` (int)
         * `name` (str)
         * `time` (:class:`datetime.datetime`)
     '''
@@ -105,6 +107,13 @@ class Folder():
     def __init__(self, **kwargs):
         for k, v in kwargs.iteritems():
             setattr(self, k, v)
+
+    def load(self, token):
+        Files.__init__(self, '/classes/{}/'.format(self.class_id),
+                       token, folder_id=self.id_)
+        for f in self:
+            if f.time.replace(tzinfo=None) > self.time:
+                self.time = f.time.replace(tzinfo=None)
 
     def __unicode__(self):
         return u'Folder({} ({}), modified at {})'.format(
@@ -126,8 +135,6 @@ class File():
     '''
 
     def __init__(self, **kwargs):
-        '''
-        '''
         for k, v in kwargs.iteritems():
             setattr(self, k, v)
 

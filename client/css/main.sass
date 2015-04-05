@@ -1,0 +1,239 @@
+// ManageBacToTheFuture: ManageBac for Humans
+// Copyright (C) 2015 Sam Parkinson
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+$grey: #222222
+$light-grey: #888888
+$shadow: #AAAAAA
+$very-light: #DDDDDD
+$white: #FFFFFF
+
+$blue: #2196F3
+$dark-blue: #303F9F
+$red: #F44336
+$orange: #FF5722
+
+=center()
+    margin-left: auto
+    margin-right: auto
+
+=loading()
+    transition: 1s ease opacity
+    &.loading
+        opacity: 0.5
+
+body
+    font: 1.25em sans-serif
+    line-height: 1.5em
+    color: $grey
+
+    margin: 0
+
+#authView
+    position: fixed
+    width: 100%
+
+#authView > div
+    width: 100vw
+    max-width: 250px
+    padding: 1.5em
+
+    background: $white
+    box-shadow: 0px 0px 10px $shadow
+
+    +center()
+
+    input
+        display: block
+        width: 100%
+        padding: 0.5em
+        margin-left: -0.5em
+        border: 2px solid $light-grey
+
+    input#email
+        border-top-left-radius: 7px
+        border-top-right-radius: 7px
+        margin-bottom: none
+        border-bottom: 1px solid $light-grey
+
+    input#password
+        margin-top: none
+        border-top: 1px solid $light-grey
+        border-bottom-left-radius: 7px
+        border-bottom-right-radius: 7px
+        margin-bottom: 0.5em
+
+    button#submit
+        +center()
+
+    +loading()
+
+    .error-banner
+        color: $red
+
+    .header
+        text-align: center
+
+    p
+        font-size: 0.75em
+
+    b
+        color: $light-grey
+
+button.primary
+    display: block
+    border: none
+
+    background-color: $blue
+    border-radius: 2px
+    padding: 0.5em
+
+    color: $white
+    font-weight: bold
+
+    box-shadow: 1px 1px 1px $shadow
+    transition: 0.5s ease all
+    &:hover
+        box-shadow: 1px 1px 10px $shadow
+
+#classesView
+    margin: 0 0 0.5em 0
+    padding: 1.5em 0.5em
+
+    background: $dark-blue
+    color: $white
+
+    box-shadow: 0px 0px 5px $shadow
+
+    ul
+        list-style: none
+        max-width: 800px
+        +center()
+
+    a, a:visited, a:hover
+        color: $white
+        text-decoration: none
+
+    a:hover
+        text-shadow: 0px 0px 5px $shadow
+
+    li.active
+        text-shadow: 0px 0px 5px $grey
+
+=width-calc($v)
+    width: 90%
+    width: -webkit-calc(100% - #{ $v })
+    width: -moz-calc(100% - #{ $v })
+    width: calc(100% - #{ $v })
+
+#classView
+    & > ul
+        list-style: none
+        padding-left: 0
+        max-width: 800px
+        +center()
+
+    & > ul > li
+        +width-calc(3em)
+        padding: 1.5em
+        overflow: hidden
+
+        background: $white
+        box-shadow: 0px 0px 10px $shadow
+
+        margin-bottom: 1em
+
+
+.post-split
+    *
+        display: block
+
+    .avatar
+        float: left
+
+.avatar
+    width: 4em
+    height: 4em
+    border-radius: 100%
+    margin-right: 0.5em
+
+.subtitle
+    color: $light-grey
+    font-size: 0.8em
+
+.comments
+    font-size: 0.8em
+    line-height: 1.2
+
+    .avatar
+        width: 3em
+        height: 3em
+
+textarea
+    +width-calc(1em)
+    padding: 0.5em
+    background: $very-light
+
+    border-radius: 2px
+    border: none
+    border-shadow: none
+
+    font-family: sans-serif
+
+.message-view
+    +loading()
+
+.events-view
+    .time-date-col
+        float: left
+
+    .bg-colored
+        width: 5em
+        height: 6em
+
+        padding: 0.2em
+        margin-right: 0.2em
+        border-radius: 2px
+
+        text-align: center
+        line-height: 0.2
+
+    .cal-number
+        font-size: 2em
+
+    .cal-number:after
+        display: block
+        position: absolute
+        margin-left: 20%
+        margin-top: -65%
+
+        content: "0"
+        font-family: sans-serif
+        font-size: 0.5em
+
+    @for $i from 1 through 9
+        .cal-number-#{ $i }:after
+            content: "#{ $i }"
+            margin-left: 32%
+
+    @for $i from 10 through 31
+        .cal-number-#{ $i }:after
+            content: "#{ $i }"
+h1
+    line-height: 1.05
+
+h1 > a
+    word-break: break-all
+    display: inline-block

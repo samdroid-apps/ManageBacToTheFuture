@@ -1,3 +1,4 @@
 build
 _build
 client/.sass-cache/
+client/node_modules/

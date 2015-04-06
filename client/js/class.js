@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 var commonmark = require('commonmark');
+var Autolinker = require('autolinker');
 import {Model, View, DumbModel} from './bases.js';
 import {getCurrentClassID} from './classes.js';
 
@@ -29,7 +30,22 @@ function markdownify (text) {
     var writer = new commonmark.HtmlRenderer();
     // Keep all `\n`s!!!
     var parsed = reader.parse(text.replace(/\n/g, '\n\n'));
-    return writer.render(parsed);
+    var html = writer.render(parsed);
+
+    return Autolinker.link(html, {
+        twitter: false,
+        truncate: 100,
+        replaceFn : function (autolinker, match) {
+            if (match.getAnchorHref()
+                     .match(/^(http|https):\/\/[0-9]{1,2}\.[\w]+$/)) {
+                // I'm not linking for people who do things like this:
+                //     1.Dotpoint
+                // But they really should USE THE SPACE BAR
+                return false;
+            }
+            return true;
+        }
+    });
 }
 
 export class ClassModel extends Model {

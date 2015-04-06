@@ -323,6 +323,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 var commonmark = require('commonmark');
+var Autolinker = require('autolinker');
 
 function markdownify(text) {
     if (text === undefined || text === null || text === '') {
@@ -333,7 +334,21 @@ function markdownify(text) {
     var writer = new commonmark.HtmlRenderer();
     // Keep all `\n`s!!!
     var parsed = reader.parse(text.replace(/\n/g, '\n\n'));
-    return writer.render(parsed);
+    var html = writer.render(parsed);
+
+    return Autolinker.link(html, {
+        twitter: false,
+        truncate: 100,
+        replaceFn: function replaceFn(autolinker, match) {
+            if (match.getAnchorHref().match(/^(http|https):\/\/[0-9]{1,2}\.[\w]+$/)) {
+                // I'm not linking for people who do things like this:
+                //     1.Dotpoint
+                // But they really should USE THE SPACE BAR
+                return false;
+            }
+            return true;
+        }
+    });
 }
 
 var ClassModel = (function (_Model) {
@@ -835,7 +850,7 @@ var FolderView = (function (_View5) {
     return FolderView;
 })(_Model$View$DumbModel.View);
 
-},{"./bases.js":2,"./classes.js":4,"commonmark":84}],4:[function(require,module,exports){
+},{"./bases.js":2,"./classes.js":4,"autolinker":6,"commonmark":12}],4:[function(require,module,exports){
 'use strict';
 
 var _classCallCheck = function (instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } };
@@ -1067,3021 +1082,2765 @@ window.onhashchange = function () {
     classesM.trigger('hashchange');
 };
 
-},{"./auth.js":1,"./class.js":3,"./classes.js":4,"babelify/polyfill":78}],6:[function(require,module,exports){
-(function (global){
-"use strict";
-
-if (global._babelPolyfill) {
-  throw new Error("only one instance of babel/polyfill is allowed");
-}
-global._babelPolyfill = true;
-
-require("core-js/shim");
-
-require("regenerator-babel/runtime");
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"core-js/shim":75,"regenerator-babel/runtime":76}],7:[function(require,module,exports){
-'use strict';
-// false -> Array#indexOf
-// true  -> Array#includes
-var $ = require('./$');
-module.exports = function(IS_INCLUDES){
-  return function(el /*, fromIndex = 0 */){
-    var O      = $.toObject(this)
-      , length = $.toLength(O.length)
-      , index  = $.toIndex(arguments[1], length)
-      , value;
-    if(IS_INCLUDES && el != el)while(length > index){
-      value = O[index++];
-      if(value != value)return true;
-    } else for(;length > index; index++)if(IS_INCLUDES || index in O){
-      if(O[index] === el)return IS_INCLUDES || index;
-    } return !IS_INCLUDES && -1;
-  };
-};
-},{"./$":20}],8:[function(require,module,exports){
-'use strict';
-// 0 -> Array#forEach
-// 1 -> Array#map
-// 2 -> Array#filter
-// 3 -> Array#some
-// 4 -> Array#every
-// 5 -> Array#find
-// 6 -> Array#findIndex
-var $   = require('./$')
-  , ctx = require('./$.ctx');
-module.exports = function(TYPE){
-  var IS_MAP        = TYPE == 1
-    , IS_FILTER     = TYPE == 2
-    , IS_SOME       = TYPE == 3
-    , IS_EVERY      = TYPE == 4
-    , IS_FIND_INDEX = TYPE == 6
-    , NO_HOLES      = TYPE == 5 || IS_FIND_INDEX;
-  return function(callbackfn/*, that = undefined */){
-    var O      = Object($.assertDefined(this))
-      , self   = $.ES5Object(O)
-      , f      = ctx(callbackfn, arguments[1], 3)
-      , length = $.toLength(self.length)
-      , index  = 0
-      , result = IS_MAP ? Array(length) : IS_FILTER ? [] : undefined
-      , val, res;
-    for(;length > index; index++)if(NO_HOLES || index in self){
-      val = self[index];
-      res = f(val, index, O);
-      if(TYPE){
-        if(IS_MAP)result[index] = res;            // map
-        else if(res)switch(TYPE){
-          case 3: return true;                    // some
-          case 5: return val;                     // find
-          case 6: return index;                   // findIndex
-          case 2: result.push(val);               // filter
-        } else if(IS_EVERY)return false;          // every
-      }
-    }
-    return IS_FIND_INDEX ? -1 : IS_SOME || IS_EVERY ? IS_EVERY : result;
-  };
-};
-},{"./$":20,"./$.ctx":15}],9:[function(require,module,exports){
-var $ = require('./$');
-function assert(condition, msg1, msg2){
-  if(!condition)throw TypeError(msg2 ? msg1 + msg2 : msg1);
-}
-assert.def = $.assertDefined;
-assert.fn = function(it){
-  if(!$.isFunction(it))throw TypeError(it + ' is not a function!');
-  return it;
-};
-assert.obj = function(it){
-  if(!$.isObject(it))throw TypeError(it + ' is not an object!');
-  return it;
-};
-assert.inst = function(it, Constructor, name){
-  if(!(it instanceof Constructor))throw TypeError(name + ": use the 'new' operator!");
-  return it;
-};
-module.exports = assert;
-},{"./$":20}],10:[function(require,module,exports){
-var $ = require('./$');
-// 19.1.2.1 Object.assign(target, source, ...)
-module.exports = Object.assign || function(target, source){ // eslint-disable-line no-unused-vars
-  var T = Object($.assertDefined(target))
-    , l = arguments.length
-    , i = 1;
-  while(l > i){
-    var S      = $.ES5Object(arguments[i++])
-      , keys   = $.getKeys(S)
-      , length = keys.length
-      , j      = 0
-      , key;
-    while(length > j)T[key = keys[j++]] = S[key];
-  }
-  return T;
-};
-},{"./$":20}],11:[function(require,module,exports){
-var $        = require('./$')
-  , TAG      = require('./$.wks')('toStringTag')
-  , toString = {}.toString;
-function cof(it){
-  return toString.call(it).slice(8, -1);
-}
-cof.classof = function(it){
-  var O, T;
-  return it == undefined ? it === undefined ? 'Undefined' : 'Null'
-    : typeof (T = (O = Object(it))[TAG]) == 'string' ? T : cof(O);
-};
-cof.set = function(it, tag, stat){
-  if(it && !$.has(it = stat ? it : it.prototype, TAG))$.hide(it, TAG, tag);
-};
-module.exports = cof;
-},{"./$":20,"./$.wks":31}],12:[function(require,module,exports){
-'use strict';
-var $        = require('./$')
-  , ctx      = require('./$.ctx')
-  , safe     = require('./$.uid').safe
-  , assert   = require('./$.assert')
-  , $iter    = require('./$.iter')
-  , has      = $.has
-  , set      = $.set
-  , isObject = $.isObject
-  , hide     = $.hide
-  , step     = $iter.step
-  , isFrozen = Object.isFrozen || $.core.Object.isFrozen
-  , ID       = safe('id')
-  , O1       = safe('O1')
-  , LAST     = safe('last')
-  , FIRST    = safe('first')
-  , ITER     = safe('iter')
-  , SIZE     = $.DESC ? safe('size') : 'size'
-  , id       = 0;
-
-function fastKey(it, create){
-  // return primitive with prefix
-  if(!isObject(it))return (typeof it == 'string' ? 'S' : 'P') + it;
-  // can't set id to frozen object
-  if(isFrozen(it))return 'F';
-  if(!has(it, ID)){
-    // not necessary to add id
-    if(!create)return 'E';
-    // add missing object id
-    hide(it, ID, ++id);
-  // return object id with prefix
-  } return 'O' + it[ID];
-}
-
-function getEntry(that, key){
-  // fast case
-  var index = fastKey(key), entry;
-  if(index != 'F')return that[O1][index];
-  // frozen object case
-  for(entry = that[FIRST]; entry; entry = entry.n){
-    if(entry.k == key)return entry;
-  }
-}
-
-module.exports = {
-  getConstructor: function(NAME, IS_MAP, ADDER){
-    function C(iterable){
-      var that = assert.inst(this, C, NAME);
-      set(that, O1, $.create(null));
-      set(that, SIZE, 0);
-      set(that, LAST, undefined);
-      set(that, FIRST, undefined);
-      if(iterable != undefined)$iter.forOf(iterable, IS_MAP, that[ADDER], that);
-    }
-    $.mix(C.prototype, {
-      // 23.1.3.1 Map.prototype.clear()
-      // 23.2.3.2 Set.prototype.clear()
-      clear: function(){
-        for(var that = this, data = that[O1], entry = that[FIRST]; entry; entry = entry.n){
-          entry.r = true;
-          if(entry.p)entry.p = entry.p.n = undefined;
-          delete data[entry.i];
-        }
-        that[FIRST] = that[LAST] = undefined;
-        that[SIZE] = 0;
-      },
-      // 23.1.3.3 Map.prototype.delete(key)
-      // 23.2.3.4 Set.prototype.delete(value)
-      'delete': function(key){
-        var that  = this
-          , entry = getEntry(that, key);
-        if(entry){
-          var next = entry.n
-            , prev = entry.p;
-          delete that[O1][entry.i];
-          entry.r = true;
-          if(prev)prev.n = next;
-          if(next)next.p = prev;
-          if(that[FIRST] == entry)that[FIRST] = next;
-          if(that[LAST] == entry)that[LAST] = prev;
-          that[SIZE]--;
-        } return !!entry;
-      },
-      // 23.2.3.6 Set.prototype.forEach(callbackfn, thisArg = undefined)
-      // 23.1.3.5 Map.prototype.forEach(callbackfn, thisArg = undefined)
-      forEach: function(callbackfn /*, that = undefined */){
-        var f = ctx(callbackfn, arguments[1], 3)
-          , entry;
-        while(entry = entry ? entry.n : this[FIRST]){
-          f(entry.v, entry.k, this);
-          // revert to the last existing entry
-          while(entry && entry.r)entry = entry.p;
-        }
-      },
-      // 23.1.3.7 Map.prototype.has(key)
-      // 23.2.3.7 Set.prototype.has(value)
-      has: function(key){
-        return !!getEntry(this, key);
-      }
+},{"./auth.js":1,"./class.js":3,"./classes.js":4,"babelify/polyfill":89}],6:[function(require,module,exports){
+(function (root, factory) {
+  if (typeof define === 'function' && define.amd) {
+    // AMD. Register as an anonymous module unless amdModuleId is set
+    define([], function () {
+      return (root['Autolinker'] = factory());
     });
-    if($.DESC)$.setDesc(C.prototype, 'size', {
-      get: function(){
-        return assert.def(this[SIZE]);
-      }
-    });
-    return C;
-  },
-  def: function(that, key, value){
-    var entry = getEntry(that, key)
-      , prev, index;
-    // change existing entry
-    if(entry){
-      entry.v = value;
-    // create new entry
-    } else {
-      that[LAST] = entry = {
-        i: index = fastKey(key, true), // <- index
-        k: key,                        // <- key
-        v: value,                      // <- value
-        p: prev = that[LAST],          // <- previous entry
-        n: undefined,                  // <- next entry
-        r: false                       // <- removed
-      };
-      if(!that[FIRST])that[FIRST] = entry;
-      if(prev)prev.n = entry;
-      that[SIZE]++;
-      // add to index
-      if(index != 'F')that[O1][index] = entry;
-    } return that;
-  },
-  getEntry: getEntry,
-  getIterConstructor: function(){
-    return function(iterated, kind){
-      set(this, ITER, {o: iterated, k: kind});
-    };
-  },
-  next: function(){
-    var iter  = this[ITER]
-      , kind  = iter.k
-      , entry = iter.l;
-    // revert to the last existing entry
-    while(entry && entry.r)entry = entry.p;
-    // get next entry
-    if(!iter.o || !(iter.l = entry = entry ? entry.n : iter.o[FIRST])){
-      // or finish the iteration
-      iter.o = undefined;
-      return step(1);
-    }
-    // return step by kind
-    if(kind == 'key'  )return step(0, entry.k);
-    if(kind == 'value')return step(0, entry.v);
-    return step(0, [entry.k, entry.v]);
-  }
-};
-},{"./$":20,"./$.assert":9,"./$.ctx":15,"./$.iter":19,"./$.uid":29}],13:[function(require,module,exports){
-'use strict';
-var $         = require('./$')
-  , safe      = require('./$.uid').safe
-  , assert    = require('./$.assert')
-  , forOf     = require('./$.iter').forOf
-  , has       = $.has
-  , isObject  = $.isObject
-  , hide      = $.hide
-  , isFrozen  = Object.isFrozen || $.core.Object.isFrozen
-  , id        = 0
-  , ID        = safe('id')
-  , WEAK      = safe('weak')
-  , LEAK      = safe('leak')
-  , method    = require('./$.array-methods')
-  , find      = method(5)
-  , findIndex = method(6);
-function findFrozen(store, key){
-  return find.call(store.array, function(it){
-    return it[0] === key;
-  });
-}
-// fallback for frozen keys
-function leakStore(that){
-  return that[LEAK] || hide(that, LEAK, {
-    array: [],
-    get: function(key){
-      var entry = findFrozen(this, key);
-      if(entry)return entry[1];
-    },
-    has: function(key){
-      return !!findFrozen(this, key);
-    },
-    set: function(key, value){
-      var entry = findFrozen(this, key);
-      if(entry)entry[1] = value;
-      else this.array.push([key, value]);
-    },
-    'delete': function(key){
-      var index = findIndex.call(this.array, function(it){
-        return it[0] === key;
-      });
-      if(~index)this.array.splice(index, 1);
-      return !!~index;
-    }
-  })[LEAK];
-}
-
-module.exports = {
-  getConstructor: function(NAME, IS_MAP, ADDER){
-    function C(iterable){
-      $.set(assert.inst(this, C, NAME), ID, id++);
-      if(iterable != undefined)forOf(iterable, IS_MAP, this[ADDER], this);
-    }
-    $.mix(C.prototype, {
-      // 23.3.3.2 WeakMap.prototype.delete(key)
-      // 23.4.3.3 WeakSet.prototype.delete(value)
-      'delete': function(key){
-        if(!isObject(key))return false;
-        if(isFrozen(key))return leakStore(this)['delete'](key);
-        return has(key, WEAK) && has(key[WEAK], this[ID]) && delete key[WEAK][this[ID]];
-      },
-      // 23.3.3.4 WeakMap.prototype.has(key)
-      // 23.4.3.4 WeakSet.prototype.has(value)
-      has: function(key){
-        if(!isObject(key))return false;
-        if(isFrozen(key))return leakStore(this).has(key);
-        return has(key, WEAK) && has(key[WEAK], this[ID]);
-      }
-    });
-    return C;
-  },
-  def: function(that, key, value){
-    if(isFrozen(assert.obj(key))){
-      leakStore(that).set(key, value);
-    } else {
-      has(key, WEAK) || hide(key, WEAK, {});
-      key[WEAK][that[ID]] = value;
-    } return that;
-  },
-  leakStore: leakStore,
-  WEAK: WEAK,
-  ID: ID
-};
-},{"./$":20,"./$.array-methods":8,"./$.assert":9,"./$.iter":19,"./$.uid":29}],14:[function(require,module,exports){
-'use strict';
-var $     = require('./$')
-  , $def  = require('./$.def')
-  , $iter = require('./$.iter')
-  , assertInstance = require('./$.assert').inst;
-
-module.exports = function(NAME, methods, common, IS_MAP, isWeak){
-  var Base  = $.g[NAME]
-    , C     = Base
-    , ADDER = IS_MAP ? 'set' : 'add'
-    , proto = C && C.prototype
-    , O     = {};
-  function fixMethod(KEY, CHAIN){
-    var method = proto[KEY];
-    if($.FW)proto[KEY] = function(a, b){
-      var result = method.call(this, a === 0 ? 0 : a, b);
-      return CHAIN ? this : result;
-    };
-  }
-  if(!$.isFunction(C) || !(isWeak || !$iter.BUGGY && proto.forEach && proto.entries)){
-    // create collection constructor
-    C = common.getConstructor(NAME, IS_MAP, ADDER);
-    $.mix(C.prototype, methods);
+  } else if (typeof exports === 'object') {
+    // Node. Does not work with strict CommonJS, but
+    // only CommonJS-like environments that support module.exports,
+    // like Node.
+    module.exports = factory();
   } else {
-    var inst  = new C
-      , chain = inst[ADDER](isWeak ? {} : -0, 1)
-      , buggyZero;
-    // wrap for init collections from iterable
-    if($iter.fail(function(iter){
-      new C(iter); // eslint-disable-line no-new
-    }) || $iter.DANGER_CLOSING){
-      C = function(iterable){
-        assertInstance(this, C, NAME);
-        var that = new Base;
-        if(iterable != undefined)$iter.forOf(iterable, IS_MAP, that[ADDER], that);
-        return that;
-      };
-      C.prototype = proto;
-      if($.FW)proto.constructor = C;
-    }
-    isWeak || inst.forEach(function(val, key){
-      buggyZero = 1 / key === -Infinity;
-    });
-    // fix converting -0 key to +0
-    if(buggyZero){
-      fixMethod('delete');
-      fixMethod('has');
-      IS_MAP && fixMethod('get');
-    }
-    // + fix .add & .set for chaining
-    if(buggyZero || chain !== inst)fixMethod(ADDER, true);
+    root['Autolinker'] = factory();
   }
+}(this, function () {
 
-  require('./$.cof').set(C, NAME);
-  require('./$.species')(C);
-
-  O[NAME] = C;
-  $def($def.G + $def.W + $def.F * (C != Base), O);
-
-  // add .keys, .values, .entries, [@@iterator]
-  // 23.1.3.4, 23.1.3.8, 23.1.3.11, 23.1.3.12, 23.2.3.5, 23.2.3.8, 23.2.3.10, 23.2.3.11
-  if(!isWeak)$iter.std(
-    C, NAME,
-    common.getIterConstructor(), common.next,
-    IS_MAP ? 'key+value' : 'value' , !IS_MAP, true
-  );
-
-  return C;
-};
-},{"./$":20,"./$.assert":9,"./$.cof":11,"./$.def":16,"./$.iter":19,"./$.species":26}],15:[function(require,module,exports){
-// Optional / simple context binding
-var assertFunction = require('./$.assert').fn;
-module.exports = function(fn, that, length){
-  assertFunction(fn);
-  if(~length && that === undefined)return fn;
-  switch(length){
-    case 1: return function(a){
-      return fn.call(that, a);
-    };
-    case 2: return function(a, b){
-      return fn.call(that, a, b);
-    };
-    case 3: return function(a, b, c){
-      return fn.call(that, a, b, c);
-    };
-  } return function(/* ...args */){
-      return fn.apply(that, arguments);
-    };
-};
-},{"./$.assert":9}],16:[function(require,module,exports){
-var $          = require('./$')
-  , global     = $.g
-  , core       = $.core
-  , isFunction = $.isFunction;
-function ctx(fn, that){
-  return function(){
-    return fn.apply(that, arguments);
-  };
-}
-global.core = core;
-// type bitmap
-$def.F = 1;  // forced
-$def.G = 2;  // global
-$def.S = 4;  // static
-$def.P = 8;  // proto
-$def.B = 16; // bind
-$def.W = 32; // wrap
-function $def(type, name, source){
-  var key, own, out, exp
-    , isGlobal = type & $def.G
-    , target   = isGlobal ? global : type & $def.S
-        ? global[name] : (global[name] || {}).prototype
-    , exports  = isGlobal ? core : core[name] || (core[name] = {});
-  if(isGlobal)source = name;
-  for(key in source){
-    // contains in native
-    own = !(type & $def.F) && target && key in target;
-    // export native or passed
-    out = (own ? target : source)[key];
-    // bind timers to global for call from export context
-    if(type & $def.B && own)exp = ctx(out, global);
-    else exp = type & $def.P && isFunction(out) ? ctx(Function.call, out) : out;
-    // extend global
-    if(target && !own){
-      if(isGlobal)target[key] = out;
-      else delete target[key] && $.hide(target, key, out);
-    }
-    // export
-    if(exports[key] != out)$.hide(exports, key, exp);
-  }
-}
-module.exports = $def;
-},{"./$":20}],17:[function(require,module,exports){
-module.exports = function($){
-  $.FW   = true;
-  $.path = $.g;
-  return $;
-};
-},{}],18:[function(require,module,exports){
-// Fast apply
-// http://jsperf.lnkit.com/fast-apply/5
-module.exports = function(fn, args, that){
-  var un = that === undefined;
-  switch(args.length){
-    case 0: return un ? fn()
-                      : fn.call(that);
-    case 1: return un ? fn(args[0])
-                      : fn.call(that, args[0]);
-    case 2: return un ? fn(args[0], args[1])
-                      : fn.call(that, args[0], args[1]);
-    case 3: return un ? fn(args[0], args[1], args[2])
-                      : fn.call(that, args[0], args[1], args[2]);
-    case 4: return un ? fn(args[0], args[1], args[2], args[3])
-                      : fn.call(that, args[0], args[1], args[2], args[3]);
-    case 5: return un ? fn(args[0], args[1], args[2], args[3], args[4])
-                      : fn.call(that, args[0], args[1], args[2], args[3], args[4]);
-  } return              fn.apply(that, args);
-};
-},{}],19:[function(require,module,exports){
-'use strict';
-var $                 = require('./$')
-  , ctx               = require('./$.ctx')
-  , cof               = require('./$.cof')
-  , $def              = require('./$.def')
-  , assertObject      = require('./$.assert').obj
-  , SYMBOL_ITERATOR   = require('./$.wks')('iterator')
-  , FF_ITERATOR       = '@@iterator'
-  , Iterators         = {}
-  , IteratorPrototype = {};
-// Safari has byggy iterators w/o `next`
-var BUGGY = 'keys' in [] && !('next' in [].keys());
-// 25.1.2.1.1 %IteratorPrototype%[@@iterator]()
-setIterator(IteratorPrototype, $.that);
-function setIterator(O, value){
-  $.hide(O, SYMBOL_ITERATOR, value);
-  // Add iterator for FF iterator protocol
-  if(FF_ITERATOR in [])$.hide(O, FF_ITERATOR, value);
-}
-function defineIterator(Constructor, NAME, value, DEFAULT){
-  var proto = Constructor.prototype
-    , iter  = proto[SYMBOL_ITERATOR] || proto[FF_ITERATOR] || DEFAULT && proto[DEFAULT] || value;
-  // Define iterator
-  if($.FW)setIterator(proto, iter);
-  if(iter !== value){
-    var iterProto = $.getProto(iter.call(new Constructor));
-    // Set @@toStringTag to native iterators
-    cof.set(iterProto, NAME + ' Iterator', true);
-    // FF fix
-    if($.FW)$.has(proto, FF_ITERATOR) && setIterator(iterProto, $.that);
-  }
-  // Plug for library
-  Iterators[NAME] = iter;
-  // FF & v8 fix
-  Iterators[NAME + ' Iterator'] = $.that;
-  return iter;
-}
-function getIterator(it){
-  var Symbol  = $.g.Symbol
-    , ext     = it[Symbol && Symbol.iterator || FF_ITERATOR]
-    , getIter = ext || it[SYMBOL_ITERATOR] || Iterators[cof.classof(it)];
-  return assertObject(getIter.call(it));
-}
-function closeIterator(iterator){
-  var ret = iterator['return'];
-  if(ret !== undefined)assertObject(ret.call(iterator));
-}
-function stepCall(iterator, fn, value, entries){
-  try {
-    return entries ? fn(assertObject(value)[0], value[1]) : fn(value);
-  } catch(e){
-    closeIterator(iterator);
-    throw e;
-  }
-}
-var DANGER_CLOSING = true;
-!function(){
-  try {
-    var iter = [1].keys();
-    iter['return'] = function(){ DANGER_CLOSING = false; };
-    Array.from(iter, function(){ throw 2; });
-  } catch(e){ /* empty */ }
-}();
-var $iter = module.exports = {
-  BUGGY: BUGGY,
-  DANGER_CLOSING: DANGER_CLOSING,
-  fail: function(exec){
-    var fail = true;
-    try {
-      var arr  = [[{}, 1]]
-        , iter = arr[SYMBOL_ITERATOR]()
-        , next = iter.next;
-      iter.next = function(){
-        fail = false;
-        return next.call(this);
-      };
-      arr[SYMBOL_ITERATOR] = function(){
-        return iter;
-      };
-      exec(arr);
-    } catch(e){ /* empty */ }
-    return fail;
-  },
-  Iterators: Iterators,
-  prototype: IteratorPrototype,
-  step: function(done, value){
-    return {value: value, done: !!done};
-  },
-  stepCall: stepCall,
-  close: closeIterator,
-  is: function(it){
-    var O      = Object(it)
-      , Symbol = $.g.Symbol
-      , SYM    = Symbol && Symbol.iterator || FF_ITERATOR;
-    return SYM in O || SYMBOL_ITERATOR in O || $.has(Iterators, cof.classof(O));
-  },
-  get: getIterator,
-  set: setIterator,
-  create: function(Constructor, NAME, next, proto){
-    Constructor.prototype = $.create(proto || $iter.prototype, {next: $.desc(1, next)});
-    cof.set(Constructor, NAME + ' Iterator');
-  },
-  define: defineIterator,
-  std: function(Base, NAME, Constructor, next, DEFAULT, IS_SET, FORCE){
-    function createIter(kind){
-      return function(){
-        return new Constructor(this, kind);
-      };
-    }
-    $iter.create(Constructor, NAME, next);
-    var entries = createIter('key+value')
-      , values  = createIter('value')
-      , proto   = Base.prototype
-      , methods, key;
-    if(DEFAULT == 'value')values = defineIterator(Base, NAME, values, 'values');
-    else entries = defineIterator(Base, NAME, entries, 'entries');
-    if(DEFAULT){
-      methods = {
-        entries: entries,
-        keys:    IS_SET ? values : createIter('key'),
-        values:  values
-      };
-      $def($def.P + $def.F * BUGGY, NAME, methods);
-      if(FORCE)for(key in methods){
-        if(!(key in proto))$.hide(proto, key, methods[key]);
-      }
-    }
-  },
-  forOf: function(iterable, entries, fn, that){
-    var iterator = getIterator(iterable)
-      , f = ctx(fn, that, entries ? 2 : 1)
-      , step;
-    while(!(step = iterator.next()).done){
-      if(stepCall(iterator, f, step.value, entries) === false){
-        return closeIterator(iterator);
-      }
-    }
-  }
-};
-},{"./$":20,"./$.assert":9,"./$.cof":11,"./$.ctx":15,"./$.def":16,"./$.wks":31}],20:[function(require,module,exports){
-'use strict';
-var global = typeof self != 'undefined' ? self : Function('return this')()
-  , core   = {}
-  , defineProperty = Object.defineProperty
-  , hasOwnProperty = {}.hasOwnProperty
-  , ceil  = Math.ceil
-  , floor = Math.floor
-  , max   = Math.max
-  , min   = Math.min;
-// The engine works fine with descriptors? Thank's IE8 for his funny defineProperty.
-var DESC = !!function(){
-  try {
-    return defineProperty({}, 'a', {get: function(){ return 2; }}).a == 2;
-  } catch(e){ /* empty */ }
-}();
-var hide = createDefiner(1);
-// 7.1.4 ToInteger
-function toInteger(it){
-  return isNaN(it = +it) ? 0 : (it > 0 ? floor : ceil)(it);
-}
-function desc(bitmap, value){
-  return {
-    enumerable  : !(bitmap & 1),
-    configurable: !(bitmap & 2),
-    writable    : !(bitmap & 4),
-    value       : value
-  };
-}
-function simpleSet(object, key, value){
-  object[key] = value;
-  return object;
-}
-function createDefiner(bitmap){
-  return DESC ? function(object, key, value){
-    return $.setDesc(object, key, desc(bitmap, value)); // eslint-disable-line no-use-before-define
-  } : simpleSet;
-}
-
-function isObject(it){
-  return it !== null && (typeof it == 'object' || typeof it == 'function');
-}
-function isFunction(it){
-  return typeof it == 'function';
-}
-function assertDefined(it){
-  if(it == undefined)throw TypeError("Can't call method on  " + it);
-  return it;
-}
-
-var $ = module.exports = require('./$.fw')({
-  g: global,
-  core: core,
-  html: global.document && document.documentElement,
-  // http://jsperf.com/core-js-isobject
-  isObject:   isObject,
-  isFunction: isFunction,
-  it: function(it){
-    return it;
-  },
-  that: function(){
-    return this;
-  },
-  // 7.1.4 ToInteger
-  toInteger: toInteger,
-  // 7.1.15 ToLength
-  toLength: function(it){
-    return it > 0 ? min(toInteger(it), 0x1fffffffffffff) : 0; // pow(2, 53) - 1 == 9007199254740991
-  },
-  toIndex: function(index, length){
-    index = toInteger(index);
-    return index < 0 ? max(index + length, 0) : min(index, length);
-  },
-  has: function(it, key){
-    return hasOwnProperty.call(it, key);
-  },
-  create:     Object.create,
-  getProto:   Object.getPrototypeOf,
-  DESC:       DESC,
-  desc:       desc,
-  getDesc:    Object.getOwnPropertyDescriptor,
-  setDesc:    defineProperty,
-  getKeys:    Object.keys,
-  getNames:   Object.getOwnPropertyNames,
-  getSymbols: Object.getOwnPropertySymbols,
-  // Dummy, fix for not array-like ES3 string in es5 module
-  assertDefined: assertDefined,
-  ES5Object: Object,
-  toObject: function(it){
-    return $.ES5Object(assertDefined(it));
-  },
-  hide: hide,
-  def: createDefiner(0),
-  set: global.Symbol ? simpleSet : hide,
-  mix: function(target, src){
-    for(var key in src)hide(target, key, src[key]);
-    return target;
-  },
-  each: [].forEach
-});
-if(typeof __e != 'undefined')__e = core;
-if(typeof __g != 'undefined')__g = global;
-},{"./$.fw":17}],21:[function(require,module,exports){
-var $ = require('./$');
-module.exports = function(object, el){
-  var O      = $.toObject(object)
-    , keys   = $.getKeys(O)
-    , length = keys.length
-    , index  = 0
-    , key;
-  while(length > index)if(O[key = keys[index++]] === el)return key;
-};
-},{"./$":20}],22:[function(require,module,exports){
-var $            = require('./$')
-  , assertObject = require('./$.assert').obj;
-module.exports = function(it){
-  assertObject(it);
-  return $.getSymbols ? $.getNames(it).concat($.getSymbols(it)) : $.getNames(it);
-};
-},{"./$":20,"./$.assert":9}],23:[function(require,module,exports){
-'use strict';
-var $      = require('./$')
-  , invoke = require('./$.invoke')
-  , assertFunction = require('./$.assert').fn;
-module.exports = function(/* ...pargs */){
-  var fn     = assertFunction(this)
-    , length = arguments.length
-    , pargs  = Array(length)
-    , i      = 0
-    , _      = $.path._
-    , holder = false;
-  while(length > i)if((pargs[i] = arguments[i++]) === _)holder = true;
-  return function(/* ...args */){
-    var that    = this
-      , _length = arguments.length
-      , j = 0, k = 0, args;
-    if(!holder && !_length)return invoke(fn, pargs, that);
-    args = pargs.slice();
-    if(holder)for(;length > j; j++)if(args[j] === _)args[j] = arguments[k++];
-    while(_length > k)args.push(arguments[k++]);
-    return invoke(fn, args, that);
-  };
-};
-},{"./$":20,"./$.assert":9,"./$.invoke":18}],24:[function(require,module,exports){
-'use strict';
-module.exports = function(regExp, replace, isStatic){
-  var replacer = replace === Object(replace) ? function(part){
-    return replace[part];
-  } : replace;
-  return function(it){
-    return String(isStatic ? it : this).replace(regExp, replacer);
-  };
-};
-},{}],25:[function(require,module,exports){
-// Works with __proto__ only. Old v8 can't works with null proto objects.
-/*eslint-disable no-proto */
-var $      = require('./$')
-  , assert = require('./$.assert');
-module.exports = Object.setPrototypeOf || ('__proto__' in {} // eslint-disable-line
-  ? function(buggy, set){
-      try {
-        set = require('./$.ctx')(Function.call, $.getDesc(Object.prototype, '__proto__').set, 2);
-        set({}, []);
-      } catch(e){ buggy = true; }
-      return function(O, proto){
-        assert.obj(O);
-        assert(proto === null || $.isObject(proto), proto, ": can't set as prototype!");
-        if(buggy)O.__proto__ = proto;
-        else set(O, proto);
-        return O;
-      };
-    }()
-  : undefined);
-},{"./$":20,"./$.assert":9,"./$.ctx":15}],26:[function(require,module,exports){
-var $ = require('./$');
-module.exports = function(C){
-  if($.DESC && $.FW)$.setDesc(C, require('./$.wks')('species'), {
-    configurable: true,
-    get: $.that
-  });
-};
-},{"./$":20,"./$.wks":31}],27:[function(require,module,exports){
-'use strict';
-// true  -> String#at
-// false -> String#codePointAt
-var $ = require('./$');
-module.exports = function(TO_STRING){
-  return function(pos){
-    var s = String($.assertDefined(this))
-      , i = $.toInteger(pos)
-      , l = s.length
-      , a, b;
-    if(i < 0 || i >= l)return TO_STRING ? '' : undefined;
-    a = s.charCodeAt(i);
-    return a < 0xd800 || a > 0xdbff || i + 1 === l
-      || (b = s.charCodeAt(i + 1)) < 0xdc00 || b > 0xdfff
-        ? TO_STRING ? s.charAt(i) : a
-        : TO_STRING ? s.slice(i, i + 2) : (a - 0xd800 << 10) + (b - 0xdc00) + 0x10000;
-  };
-};
-},{"./$":20}],28:[function(require,module,exports){
-'use strict';
-var $      = require('./$')
-  , ctx    = require('./$.ctx')
-  , cof    = require('./$.cof')
-  , invoke = require('./$.invoke')
-  , global             = $.g
-  , isFunction         = $.isFunction
-  , setTask            = global.setImmediate
-  , clearTask          = global.clearImmediate
-  , postMessage        = global.postMessage
-  , addEventListener   = global.addEventListener
-  , MessageChannel     = global.MessageChannel
-  , counter            = 0
-  , queue              = {}
-  , ONREADYSTATECHANGE = 'onreadystatechange'
-  , defer, channel, port;
-function run(){
-  var id = +this;
-  if($.has(queue, id)){
-    var fn = queue[id];
-    delete queue[id];
-    fn();
-  }
-}
-function listner(event){
-  run.call(event.data);
-}
-// Node.js 0.9+ & IE10+ has setImmediate, otherwise:
-if(!isFunction(setTask) || !isFunction(clearTask)){
-  setTask = function(fn){
-    var args = [], i = 1;
-    while(arguments.length > i)args.push(arguments[i++]);
-    queue[++counter] = function(){
-      invoke(isFunction(fn) ? fn : Function(fn), args);
-    };
-    defer(counter);
-    return counter;
-  };
-  clearTask = function(id){
-    delete queue[id];
-  };
-  // Node.js 0.8-
-  if(cof(global.process) == 'process'){
-    defer = function(id){
-      global.process.nextTick(ctx(run, id, 1));
-    };
-  // Modern browsers, skip implementation for WebWorkers
-  // IE8 has postMessage, but it's sync & typeof its postMessage is object
-  } else if(addEventListener && isFunction(postMessage) && !$.g.importScripts){
-    defer = function(id){
-      postMessage(id, '*');
-    };
-    addEventListener('message', listner, false);
-  // WebWorkers
-  } else if(isFunction(MessageChannel)){
-    channel = new MessageChannel;
-    port    = channel.port2;
-    channel.port1.onmessage = listner;
-    defer = ctx(port.postMessage, port, 1);
-  // IE8-
-  } else if($.g.document && ONREADYSTATECHANGE in document.createElement('script')){
-    defer = function(id){
-      $.html.appendChild(document.createElement('script'))[ONREADYSTATECHANGE] = function(){
-        $.html.removeChild(this);
-        run.call(id);
-      };
-    };
-  // Rest old browsers
-  } else {
-    defer = function(id){
-      setTimeout(ctx(run, id, 1), 0);
-    };
-  }
-}
-module.exports = {
-  set:   setTask,
-  clear: clearTask
-};
-},{"./$":20,"./$.cof":11,"./$.ctx":15,"./$.invoke":18}],29:[function(require,module,exports){
-var sid = 0;
-function uid(key){
-  return 'Symbol(' + key + ')_' + (++sid + Math.random()).toString(36);
-}
-uid.safe = require('./$').g.Symbol || uid;
-module.exports = uid;
-},{"./$":20}],30:[function(require,module,exports){
-// 22.1.3.31 Array.prototype[@@unscopables]
-var $           = require('./$')
-  , UNSCOPABLES = require('./$.wks')('unscopables');
-if($.FW && !(UNSCOPABLES in []))$.hide(Array.prototype, UNSCOPABLES, {});
-module.exports = function(key){
-  if($.FW)[][UNSCOPABLES][key] = true;
-};
-},{"./$":20,"./$.wks":31}],31:[function(require,module,exports){
-var global = require('./$').g
-  , store  = {};
-module.exports = function(name){
-  return store[name] || (store[name] =
-    global.Symbol && global.Symbol[name] || require('./$.uid').safe('Symbol.' + name));
-};
-},{"./$":20,"./$.uid":29}],32:[function(require,module,exports){
-var $                = require('./$')
-  , cof              = require('./$.cof')
-  , $def             = require('./$.def')
-  , invoke           = require('./$.invoke')
-  , arrayMethod      = require('./$.array-methods')
-  , IE_PROTO         = require('./$.uid').safe('__proto__')
-  , assert           = require('./$.assert')
-  , assertObject     = assert.obj
-  , ObjectProto      = Object.prototype
-  , A                = []
-  , slice            = A.slice
-  , indexOf          = A.indexOf
-  , classof          = cof.classof
-  , defineProperties = Object.defineProperties
-  , has              = $.has
-  , defineProperty   = $.setDesc
-  , getOwnDescriptor = $.getDesc
-  , isFunction       = $.isFunction
-  , toObject         = $.toObject
-  , toLength         = $.toLength
-  , IE8_DOM_DEFINE   = false;
-
-if(!$.DESC){
-  try {
-    IE8_DOM_DEFINE = defineProperty(document.createElement('div'), 'x',
-      {get: function(){ return 8; }}
-    ).x == 8;
-  } catch(e){ /* empty */ }
-  $.setDesc = function(O, P, Attributes){
-    if(IE8_DOM_DEFINE)try {
-      return defineProperty(O, P, Attributes);
-    } catch(e){ /* empty */ }
-    if('get' in Attributes || 'set' in Attributes)throw TypeError('Accessors not supported!');
-    if('value' in Attributes)assertObject(O)[P] = Attributes.value;
-    return O;
-  };
-  $.getDesc = function(O, P){
-    if(IE8_DOM_DEFINE)try {
-      return getOwnDescriptor(O, P);
-    } catch(e){ /* empty */ }
-    if(has(O, P))return $.desc(!ObjectProto.propertyIsEnumerable.call(O, P), O[P]);
-  };
-  defineProperties = function(O, Properties){
-    assertObject(O);
-    var keys   = $.getKeys(Properties)
-      , length = keys.length
-      , i = 0
-      , P;
-    while(length > i)$.setDesc(O, P = keys[i++], Properties[P]);
-    return O;
-  };
-}
-$def($def.S + $def.F * !$.DESC, 'Object', {
-  // 19.1.2.6 / 15.2.3.3 Object.getOwnPropertyDescriptor(O, P)
-  getOwnPropertyDescriptor: $.getDesc,
-  // 19.1.2.4 / 15.2.3.6 Object.defineProperty(O, P, Attributes)
-  defineProperty: $.setDesc,
-  // 19.1.2.3 / 15.2.3.7 Object.defineProperties(O, Properties)
-  defineProperties: defineProperties
-});
-
-  // IE 8- don't enum bug keys
-var keys1 = ('constructor,hasOwnProperty,isPrototypeOf,propertyIsEnumerable,' +
-            'toLocaleString,toString,valueOf').split(',')
-  // Additional keys for getOwnPropertyNames
-  , keys2 = keys1.concat('length', 'prototype')
-  , keysLen1 = keys1.length;
-
-// Create object with `null` prototype: use iframe Object with cleared prototype
-var createDict = function(){
-  // Thrash, waste and sodomy: IE GC bug
-  var iframe = document.createElement('iframe')
-    , i      = keysLen1
-    , iframeDocument;
-  iframe.style.display = 'none';
-  $.html.appendChild(iframe);
-  iframe.src = 'javascript:'; // eslint-disable-line no-script-url
-  // createDict = iframe.contentWindow.Object;
-  // html.removeChild(iframe);
-  iframeDocument = iframe.contentWindow.document;
-  iframeDocument.open();
-  iframeDocument.write('<script>document.F=Object</script>');
-  iframeDocument.close();
-  createDict = iframeDocument.F;
-  while(i--)delete createDict.prototype[keys1[i]];
-  return createDict();
-};
-function createGetKeys(names, length){
-  return function(object){
-    var O      = toObject(object)
-      , i      = 0
-      , result = []
-      , key;
-    for(key in O)if(key != IE_PROTO)has(O, key) && result.push(key);
-    // Don't enum bug & hidden keys
-    while(length > i)if(has(O, key = names[i++])){
-      ~indexOf.call(result, key) || result.push(key);
-    }
-    return result;
-  };
-}
-function isPrimitive(it){ return !$.isObject(it); }
-function Empty(){}
-$def($def.S, 'Object', {
-  // 19.1.2.9 / 15.2.3.2 Object.getPrototypeOf(O)
-  getPrototypeOf: $.getProto = $.getProto || function(O){
-    O = Object(assert.def(O));
-    if(has(O, IE_PROTO))return O[IE_PROTO];
-    if(isFunction(O.constructor) && O instanceof O.constructor){
-      return O.constructor.prototype;
-    } return O instanceof Object ? ObjectProto : null;
-  },
-  // 19.1.2.7 / 15.2.3.4 Object.getOwnPropertyNames(O)
-  getOwnPropertyNames: $.getNames = $.getNames || createGetKeys(keys2, keys2.length, true),
-  // 19.1.2.2 / 15.2.3.5 Object.create(O [, Properties])
-  create: $.create = $.create || function(O, /*?*/Properties){
-    var result;
-    if(O !== null){
-      Empty.prototype = assertObject(O);
-      result = new Empty();
-      Empty.prototype = null;
-      // add "__proto__" for Object.getPrototypeOf shim
-      result[IE_PROTO] = O;
-    } else result = createDict();
-    return Properties === undefined ? result : defineProperties(result, Properties);
-  },
-  // 19.1.2.14 / 15.2.3.14 Object.keys(O)
-  keys: $.getKeys = $.getKeys || createGetKeys(keys1, keysLen1, false),
-  // 19.1.2.17 / 15.2.3.8 Object.seal(O)
-  seal: $.it, // <- cap
-  // 19.1.2.5 / 15.2.3.9 Object.freeze(O)
-  freeze: $.it, // <- cap
-  // 19.1.2.15 / 15.2.3.10 Object.preventExtensions(O)
-  preventExtensions: $.it, // <- cap
-  // 19.1.2.13 / 15.2.3.11 Object.isSealed(O)
-  isSealed: isPrimitive, // <- cap
-  // 19.1.2.12 / 15.2.3.12 Object.isFrozen(O)
-  isFrozen: isPrimitive, // <- cap
-  // 19.1.2.11 / 15.2.3.13 Object.isExtensible(O)
-  isExtensible: $.isObject // <- cap
-});
-
-// 19.2.3.2 / 15.3.4.5 Function.prototype.bind(thisArg, args...)
-$def($def.P, 'Function', {
-  bind: function(that /*, args... */){
-    var fn       = assert.fn(this)
-      , partArgs = slice.call(arguments, 1);
-    function bound(/* args... */){
-      var args = partArgs.concat(slice.call(arguments));
-      return invoke(fn, args, this instanceof bound ? $.create(fn.prototype) : that);
-    }
-    if(fn.prototype)bound.prototype = fn.prototype;
-    return bound;
-  }
-});
-
-// Fix for not array-like ES3 string
-function arrayMethodFix(fn){
-  return function(){
-    return fn.apply($.ES5Object(this), arguments);
-  };
-}
-if(!(0 in Object('z') && 'z'[0] == 'z')){
-  $.ES5Object = function(it){
-    return cof(it) == 'String' ? it.split('') : Object(it);
-  };
-}
-$def($def.P + $def.F * ($.ES5Object != Object), 'Array', {
-  slice: arrayMethodFix(slice),
-  join: arrayMethodFix(A.join)
-});
-
-// 22.1.2.2 / 15.4.3.2 Array.isArray(arg)
-$def($def.S, 'Array', {
-  isArray: function(arg){
-    return cof(arg) == 'Array';
-  }
-});
-function createArrayReduce(isRight){
-  return function(callbackfn, memo){
-    assert.fn(callbackfn);
-    var O      = toObject(this)
-      , length = toLength(O.length)
-      , index  = isRight ? length - 1 : 0
-      , i      = isRight ? -1 : 1;
-    if(arguments.length < 2)for(;;){
-      if(index in O){
-        memo = O[index];
-        index += i;
-        break;
-      }
-      index += i;
-      assert(isRight ? index >= 0 : length > index, 'Reduce of empty array with no initial value');
-    }
-    for(;isRight ? index >= 0 : length > index; index += i)if(index in O){
-      memo = callbackfn(memo, O[index], index, this);
-    }
-    return memo;
-  };
-}
-$def($def.P, 'Array', {
-  // 22.1.3.10 / 15.4.4.18 Array.prototype.forEach(callbackfn [, thisArg])
-  forEach: $.each = $.each || arrayMethod(0),
-  // 22.1.3.15 / 15.4.4.19 Array.prototype.map(callbackfn [, thisArg])
-  map: arrayMethod(1),
-  // 22.1.3.7 / 15.4.4.20 Array.prototype.filter(callbackfn [, thisArg])
-  filter: arrayMethod(2),
-  // 22.1.3.23 / 15.4.4.17 Array.prototype.some(callbackfn [, thisArg])
-  some: arrayMethod(3),
-  // 22.1.3.5 / 15.4.4.16 Array.prototype.every(callbackfn [, thisArg])
-  every: arrayMethod(4),
-  // 22.1.3.18 / 15.4.4.21 Array.prototype.reduce(callbackfn [, initialValue])
-  reduce: createArrayReduce(false),
-  // 22.1.3.19 / 15.4.4.22 Array.prototype.reduceRight(callbackfn [, initialValue])
-  reduceRight: createArrayReduce(true),
-  // 22.1.3.11 / 15.4.4.14 Array.prototype.indexOf(searchElement [, fromIndex])
-  indexOf: indexOf = indexOf || require('./$.array-includes')(false),
-  // 22.1.3.14 / 15.4.4.15 Array.prototype.lastIndexOf(searchElement [, fromIndex])
-  lastIndexOf: function(el, fromIndex /* = @[*-1] */){
-    var O      = toObject(this)
-      , length = toLength(O.length)
-      , index  = length - 1;
-    if(arguments.length > 1)index = Math.min(index, $.toInteger(fromIndex));
-    if(index < 0)index = toLength(length + index);
-    for(;index >= 0; index--)if(index in O)if(O[index] === el)return index;
-    return -1;
-  }
-});
-
-// 21.1.3.25 / 15.5.4.20 String.prototype.trim()
-$def($def.P, 'String', {trim: require('./$.replacer')(/^\s*([\s\S]*\S)?\s*$/, '$1')});
-
-// 20.3.3.1 / 15.9.4.4 Date.now()
-$def($def.S, 'Date', {now: function(){
-  return +new Date;
-}});
-
-function lz(num){
-  return num > 9 ? num : '0' + num;
-}
-// 20.3.4.36 / 15.9.5.43 Date.prototype.toISOString()
-$def($def.P, 'Date', {toISOString: function(){
-  if(!isFinite(this))throw RangeError('Invalid time value');
-  var d = this
-    , y = d.getUTCFullYear()
-    , m = d.getUTCMilliseconds()
-    , s = y < 0 ? '-' : y > 9999 ? '+' : '';
-  return s + ('00000' + Math.abs(y)).slice(s ? -6 : -4) +
-    '-' + lz(d.getUTCMonth() + 1) + '-' + lz(d.getUTCDate()) +
-    'T' + lz(d.getUTCHours()) + ':' + lz(d.getUTCMinutes()) +
-    ':' + lz(d.getUTCSeconds()) + '.' + (m > 99 ? m : '0' + lz(m)) + 'Z';
-}});
-
-if(classof(function(){ return arguments; }()) == 'Object')cof.classof = function(it){
-  var tag = classof(it);
-  return tag == 'Object' && isFunction(it.callee) ? 'Arguments' : tag;
-};
-},{"./$":20,"./$.array-includes":7,"./$.array-methods":8,"./$.assert":9,"./$.cof":11,"./$.def":16,"./$.invoke":18,"./$.replacer":24,"./$.uid":29}],33:[function(require,module,exports){
-'use strict';
-var $       = require('./$')
-  , $def    = require('./$.def')
-  , toIndex = $.toIndex;
-$def($def.P, 'Array', {
-  // 22.1.3.3 Array.prototype.copyWithin(target, start, end = this.length)
-  copyWithin: function(target/* = 0 */, start /* = 0, end = @length */){
-    var O     = Object($.assertDefined(this))
-      , len   = $.toLength(O.length)
-      , to    = toIndex(target, len)
-      , from  = toIndex(start, len)
-      , end   = arguments[2]
-      , fin   = end === undefined ? len : toIndex(end, len)
-      , count = Math.min(fin - from, len - to)
-      , inc   = 1;
-    if(from < to && to < from + count){
-      inc  = -1;
-      from = from + count - 1;
-      to   = to   + count - 1;
-    }
-    while(count-- > 0){
-      if(from in O)O[to] = O[from];
-      else delete O[to];
-      to   += inc;
-      from += inc;
-    } return O;
-  }
-});
-require('./$.unscope')('copyWithin');
-},{"./$":20,"./$.def":16,"./$.unscope":30}],34:[function(require,module,exports){
-'use strict';
-var $       = require('./$')
-  , $def    = require('./$.def')
-  , toIndex = $.toIndex;
-$def($def.P, 'Array', {
-  // 22.1.3.6 Array.prototype.fill(value, start = 0, end = this.length)
-  fill: function(value /*, start = 0, end = @length */){
-    var O      = Object($.assertDefined(this))
-      , length = $.toLength(O.length)
-      , index  = toIndex(arguments[1], length)
-      , end    = arguments[2]
-      , endPos = end === undefined ? length : toIndex(end, length);
-    while(endPos > index)O[index++] = value;
-    return O;
-  }
-});
-require('./$.unscope')('fill');
-},{"./$":20,"./$.def":16,"./$.unscope":30}],35:[function(require,module,exports){
-var $def = require('./$.def');
-$def($def.P, 'Array', {
-  // 22.1.3.9 Array.prototype.findIndex(predicate, thisArg = undefined)
-  findIndex: require('./$.array-methods')(6)
-});
-require('./$.unscope')('findIndex');
-},{"./$.array-methods":8,"./$.def":16,"./$.unscope":30}],36:[function(require,module,exports){
-var $def = require('./$.def');
-$def($def.P, 'Array', {
-  // 22.1.3.8 Array.prototype.find(predicate, thisArg = undefined)
-  find: require('./$.array-methods')(5)
-});
-require('./$.unscope')('find');
-},{"./$.array-methods":8,"./$.def":16,"./$.unscope":30}],37:[function(require,module,exports){
-var $     = require('./$')
-  , ctx   = require('./$.ctx')
-  , $def  = require('./$.def')
-  , $iter = require('./$.iter')
-  , stepCall = $iter.stepCall;
-$def($def.S + $def.F * $iter.DANGER_CLOSING, 'Array', {
-  // 22.1.2.1 Array.from(arrayLike, mapfn = undefined, thisArg = undefined)
-  from: function(arrayLike/*, mapfn = undefined, thisArg = undefined*/){
-    var O       = Object($.assertDefined(arrayLike))
-      , mapfn   = arguments[1]
-      , mapping = mapfn !== undefined
-      , f       = mapping ? ctx(mapfn, arguments[2], 2) : undefined
-      , index   = 0
-      , length, result, step, iterator;
-    if($iter.is(O)){
-      iterator = $iter.get(O);
-      // strange IE quirks mode bug -> use typeof instead of isFunction
-      result   = new (typeof this == 'function' ? this : Array);
-      for(; !(step = iterator.next()).done; index++){
-        result[index] = mapping ? stepCall(iterator, f, [step.value, index], true) : step.value;
-      }
-    } else {
-      // strange IE quirks mode bug -> use typeof instead of isFunction
-      result = new (typeof this == 'function' ? this : Array)(length = $.toLength(O.length));
-      for(; length > index; index++){
-        result[index] = mapping ? f(O[index], index) : O[index];
-      }
-    }
-    result.length = index;
-    return result;
-  }
-});
-},{"./$":20,"./$.ctx":15,"./$.def":16,"./$.iter":19}],38:[function(require,module,exports){
-var $          = require('./$')
-  , setUnscope = require('./$.unscope')
-  , ITER       = require('./$.uid').safe('iter')
-  , $iter      = require('./$.iter')
-  , step       = $iter.step
-  , Iterators  = $iter.Iterators;
-
-// 22.1.3.4 Array.prototype.entries()
-// 22.1.3.13 Array.prototype.keys()
-// 22.1.3.29 Array.prototype.values()
-// 22.1.3.30 Array.prototype[@@iterator]()
-$iter.std(Array, 'Array', function(iterated, kind){
-  $.set(this, ITER, {o: $.toObject(iterated), i: 0, k: kind});
-// 22.1.5.2.1 %ArrayIteratorPrototype%.next()
-}, function(){
-  var iter  = this[ITER]
-    , O     = iter.o
-    , kind  = iter.k
-    , index = iter.i++;
-  if(!O || index >= O.length){
-    iter.o = undefined;
-    return step(1);
-  }
-  if(kind == 'key'  )return step(0, index);
-  if(kind == 'value')return step(0, O[index]);
-  return step(0, [index, O[index]]);
-}, 'value');
-
-// argumentsList[@@iterator] is %ArrayProto_values% (9.4.4.6, 9.4.4.7)
-Iterators.Arguments = Iterators.Array;
-
-setUnscope('keys');
-setUnscope('values');
-setUnscope('entries');
-},{"./$":20,"./$.iter":19,"./$.uid":29,"./$.unscope":30}],39:[function(require,module,exports){
-var $def = require('./$.def');
-$def($def.S, 'Array', {
-  // 22.1.2.3 Array.of( ...items)
-  of: function(/* ...args */){
-    var index  = 0
-      , length = arguments.length
-      // strange IE quirks mode bug -> use typeof instead of isFunction
-      , result = new (typeof this == 'function' ? this : Array)(length);
-    while(length > index)result[index] = arguments[index++];
-    result.length = length;
-    return result;
-  }
-});
-},{"./$.def":16}],40:[function(require,module,exports){
-require('./$.species')(Array);
-},{"./$.species":26}],41:[function(require,module,exports){
-'use strict';
-var $    = require('./$')
-  , NAME = 'name'
-  , setDesc = $.setDesc
-  , FunctionProto = Function.prototype;
-// 19.2.4.2 name
-NAME in FunctionProto || $.FW && $.DESC && setDesc(FunctionProto, NAME, {
-  configurable: true,
-  get: function(){
-    var match = String(this).match(/^\s*function ([^ (]*)/)
-      , name  = match ? match[1] : '';
-    $.has(this, NAME) || setDesc(this, NAME, $.desc(5, name));
-    return name;
-  },
-  set: function(value){
-    $.has(this, NAME) || setDesc(this, NAME, $.desc(0, value));
-  }
-});
-},{"./$":20}],42:[function(require,module,exports){
-'use strict';
-var strong = require('./$.collection-strong');
-
-// 23.1 Map Objects
-require('./$.collection')('Map', {
-  // 23.1.3.6 Map.prototype.get(key)
-  get: function(key){
-    var entry = strong.getEntry(this, key);
-    return entry && entry.v;
-  },
-  // 23.1.3.9 Map.prototype.set(key, value)
-  set: function(key, value){
-    return strong.def(this, key === 0 ? 0 : key, value);
-  }
-}, strong, true);
-},{"./$.collection":14,"./$.collection-strong":12}],43:[function(require,module,exports){
-var Infinity = 1 / 0
-  , $def  = require('./$.def')
-  , E     = Math.E
-  , pow   = Math.pow
-  , abs   = Math.abs
-  , exp   = Math.exp
-  , log   = Math.log
-  , sqrt  = Math.sqrt
-  , ceil  = Math.ceil
-  , floor = Math.floor
-  , sign  = Math.sign || function(x){
-      return (x = +x) == 0 || x != x ? x : x < 0 ? -1 : 1;
-    };
-
-// 20.2.2.5 Math.asinh(x)
-function asinh(x){
-  return !isFinite(x = +x) || x == 0 ? x : x < 0 ? -asinh(-x) : log(x + sqrt(x * x + 1));
-}
-// 20.2.2.14 Math.expm1(x)
-function expm1(x){
-  return (x = +x) == 0 ? x : x > -1e-6 && x < 1e-6 ? x + x * x / 2 : exp(x) - 1;
-}
-
-$def($def.S, 'Math', {
-  // 20.2.2.3 Math.acosh(x)
-  acosh: function(x){
-    return (x = +x) < 1 ? NaN : isFinite(x) ? log(x / E + sqrt(x + 1) * sqrt(x - 1) / E) + 1 : x;
-  },
-  // 20.2.2.5 Math.asinh(x)
-  asinh: asinh,
-  // 20.2.2.7 Math.atanh(x)
-  atanh: function(x){
-    return (x = +x) == 0 ? x : log((1 + x) / (1 - x)) / 2;
-  },
-  // 20.2.2.9 Math.cbrt(x)
-  cbrt: function(x){
-    return sign(x = +x) * pow(abs(x), 1 / 3);
-  },
-  // 20.2.2.11 Math.clz32(x)
-  clz32: function(x){
-    return (x >>>= 0) ? 32 - x.toString(2).length : 32;
-  },
-  // 20.2.2.12 Math.cosh(x)
-  cosh: function(x){
-    return (exp(x = +x) + exp(-x)) / 2;
-  },
-  // 20.2.2.14 Math.expm1(x)
-  expm1: expm1,
-  // 20.2.2.16 Math.fround(x)
-  // TODO: fallback for IE9-
-  fround: function(x){
-    return new Float32Array([x])[0];
-  },
-  // 20.2.2.17 Math.hypot([value1[, value2[, … ]]])
-  hypot: function(value1, value2){ // eslint-disable-line no-unused-vars
-    var sum  = 0
-      , len1 = arguments.length
-      , len2 = len1
-      , args = Array(len1)
-      , larg = -Infinity
-      , arg;
-    while(len1--){
-      arg = args[len1] = +arguments[len1];
-      if(arg == Infinity || arg == -Infinity)return Infinity;
-      if(arg > larg)larg = arg;
-    }
-    larg = arg || 1;
-    while(len2--)sum += pow(args[len2] / larg, 2);
-    return larg * sqrt(sum);
-  },
-  // 20.2.2.18 Math.imul(x, y)
-  imul: function(x, y){
-    var UInt16 = 0xffff
-      , xn = +x
-      , yn = +y
-      , xl = UInt16 & xn
-      , yl = UInt16 & yn;
-    return 0 | xl * yl + ((UInt16 & xn >>> 16) * yl + xl * (UInt16 & yn >>> 16) << 16 >>> 0);
-  },
-  // 20.2.2.20 Math.log1p(x)
-  log1p: function(x){
-    return (x = +x) > -1e-8 && x < 1e-8 ? x - x * x / 2 : log(1 + x);
-  },
-  // 20.2.2.21 Math.log10(x)
-  log10: function(x){
-    return log(x) / Math.LN10;
-  },
-  // 20.2.2.22 Math.log2(x)
-  log2: function(x){
-    return log(x) / Math.LN2;
-  },
-  // 20.2.2.28 Math.sign(x)
-  sign: sign,
-  // 20.2.2.30 Math.sinh(x)
-  sinh: function(x){
-    return abs(x = +x) < 1 ? (expm1(x) - expm1(-x)) / 2 : (exp(x - 1) - exp(-x - 1)) * (E / 2);
-  },
-  // 20.2.2.33 Math.tanh(x)
-  tanh: function(x){
-    var a = expm1(x = +x)
-      , b = expm1(-x);
-    return a == Infinity ? 1 : b == Infinity ? -1 : (a - b) / (exp(x) + exp(-x));
-  },
-  // 20.2.2.34 Math.trunc(x)
-  trunc: function(it){
-    return (it > 0 ? floor : ceil)(it);
-  }
-});
-},{"./$.def":16}],44:[function(require,module,exports){
-'use strict';
-var $          = require('./$')
-  , isObject   = $.isObject
-  , isFunction = $.isFunction
-  , NUMBER     = 'Number'
-  , Number     = $.g[NUMBER]
-  , Base       = Number
-  , proto      = Number.prototype;
-function toPrimitive(it){
-  var fn, val;
-  if(isFunction(fn = it.valueOf) && !isObject(val = fn.call(it)))return val;
-  if(isFunction(fn = it.toString) && !isObject(val = fn.call(it)))return val;
-  throw TypeError("Can't convert object to number");
-}
-function toNumber(it){
-  if(isObject(it))it = toPrimitive(it);
-  if(typeof it == 'string' && it.length > 2 && it.charCodeAt(0) == 48){
-    var binary = false;
-    switch(it.charCodeAt(1)){
-      case 66 : case 98  : binary = true;
-      case 79 : case 111 : return parseInt(it.slice(2), binary ? 2 : 8);
-    }
-  } return +it;
-}
-if($.FW && !(Number('0o1') && Number('0b1'))){
-  Number = function Number(it){
-    return this instanceof Number ? new Base(toNumber(it)) : toNumber(it);
-  };
-  $.each.call($.DESC ? $.getNames(Base) : (
-      // ES3:
-      'MAX_VALUE,MIN_VALUE,NaN,NEGATIVE_INFINITY,POSITIVE_INFINITY,' +
-      // ES6 (in case, if modules with ES6 Number statics required before):
-      'EPSILON,isFinite,isInteger,isNaN,isSafeInteger,MAX_SAFE_INTEGER,' +
-      'MIN_SAFE_INTEGER,parseFloat,parseInt,isInteger'
-    ).split(','), function(key){
-      if($.has(Base, key) && !$.has(Number, key)){
-        $.setDesc(Number, key, $.getDesc(Base, key));
-      }
-    }
-  );
-  Number.prototype = proto;
-  proto.constructor = Number;
-  $.hide($.g, NUMBER, Number);
-}
-},{"./$":20}],45:[function(require,module,exports){
-var $     = require('./$')
-  , $def  = require('./$.def')
-  , abs   = Math.abs
-  , floor = Math.floor
-  , MAX_SAFE_INTEGER = 0x1fffffffffffff; // pow(2, 53) - 1 == 9007199254740991;
-function isInteger(it){
-  return !$.isObject(it) && isFinite(it) && floor(it) === it;
-}
-$def($def.S, 'Number', {
-  // 20.1.2.1 Number.EPSILON
-  EPSILON: Math.pow(2, -52),
-  // 20.1.2.2 Number.isFinite(number)
-  isFinite: function(it){
-    return typeof it == 'number' && isFinite(it);
-  },
-  // 20.1.2.3 Number.isInteger(number)
-  isInteger: isInteger,
-  // 20.1.2.4 Number.isNaN(number)
-  isNaN: function(number){
-    return number != number;
-  },
-  // 20.1.2.5 Number.isSafeInteger(number)
-  isSafeInteger: function(number){
-    return isInteger(number) && abs(number) <= MAX_SAFE_INTEGER;
-  },
-  // 20.1.2.6 Number.MAX_SAFE_INTEGER
-  MAX_SAFE_INTEGER: MAX_SAFE_INTEGER,
-  // 20.1.2.10 Number.MIN_SAFE_INTEGER
-  MIN_SAFE_INTEGER: -MAX_SAFE_INTEGER,
-  // 20.1.2.12 Number.parseFloat(string)
-  parseFloat: parseFloat,
-  // 20.1.2.13 Number.parseInt(string, radix)
-  parseInt: parseInt
-});
-},{"./$":20,"./$.def":16}],46:[function(require,module,exports){
-// 19.1.3.1 Object.assign(target, source)
-var $def = require('./$.def');
-$def($def.S, 'Object', {assign: require('./$.assign')});
-},{"./$.assign":10,"./$.def":16}],47:[function(require,module,exports){
-// 19.1.3.10 Object.is(value1, value2)
-var $def = require('./$.def');
-$def($def.S, 'Object', {
-  is: function(x, y){
-    return x === y ? x !== 0 || 1 / x === 1 / y : x != x && y != y;
-  }
-});
-},{"./$.def":16}],48:[function(require,module,exports){
-// 19.1.3.19 Object.setPrototypeOf(O, proto)
-var $def = require('./$.def');
-$def($def.S, 'Object', {setPrototypeOf: require('./$.set-proto')});
-},{"./$.def":16,"./$.set-proto":25}],49:[function(require,module,exports){
-var $        = require('./$')
-  , $def     = require('./$.def')
-  , isObject = $.isObject
-  , toObject = $.toObject;
-function wrapObjectMethod(METHOD, MODE){
-  var fn  = ($.core.Object || {})[METHOD] || Object[METHOD]
-    , f   = 0
-    , o   = {};
-  o[METHOD] = MODE == 1 ? function(it){
-    return isObject(it) ? fn(it) : it;
-  } : MODE == 2 ? function(it){
-    return isObject(it) ? fn(it) : true;
-  } : MODE == 3 ? function(it){
-    return isObject(it) ? fn(it) : false;
-  } : MODE == 4 ? function(it, key){
-    return fn(toObject(it), key);
-  } : MODE == 5 ? function(it){
-    return fn(Object($.assertDefined(it)));
-  } : function(it){
-    return fn(toObject(it));
-  };
-  try {
-    fn('z');
-  } catch(e){
-    f = 1;
-  }
-  $def($def.S + $def.F * f, 'Object', o);
-}
-wrapObjectMethod('freeze', 1);
-wrapObjectMethod('seal', 1);
-wrapObjectMethod('preventExtensions', 1);
-wrapObjectMethod('isFrozen', 2);
-wrapObjectMethod('isSealed', 2);
-wrapObjectMethod('isExtensible', 3);
-wrapObjectMethod('getOwnPropertyDescriptor', 4);
-wrapObjectMethod('getPrototypeOf', 5);
-wrapObjectMethod('keys');
-wrapObjectMethod('getOwnPropertyNames');
-},{"./$":20,"./$.def":16}],50:[function(require,module,exports){
-'use strict';
-// 19.1.3.6 Object.prototype.toString()
-var $   = require('./$')
-  , cof = require('./$.cof')
-  , tmp = {};
-tmp[require('./$.wks')('toStringTag')] = 'z';
-if($.FW && cof(tmp) != 'z')$.hide(Object.prototype, 'toString', function(){
-  return '[object ' + cof.classof(this) + ']';
-});
-},{"./$":20,"./$.cof":11,"./$.wks":31}],51:[function(require,module,exports){
-'use strict';
-var $       = require('./$')
-  , ctx     = require('./$.ctx')
-  , cof     = require('./$.cof')
-  , $def    = require('./$.def')
-  , assert  = require('./$.assert')
-  , $iter   = require('./$.iter')
-  , SPECIES = require('./$.wks')('species')
-  , RECORD  = require('./$.uid').safe('record')
-  , forOf   = $iter.forOf
-  , PROMISE = 'Promise'
-  , global  = $.g
-  , process = global.process
-  , asap    = process && process.nextTick || require('./$.task').set
-  , Promise = global[PROMISE]
-  , Base    = Promise
-  , isFunction     = $.isFunction
-  , isObject       = $.isObject
-  , assertFunction = assert.fn
-  , assertObject   = assert.obj
-  , test;
-function getConstructor(C){
-  var S = assertObject(C)[SPECIES];
-  return S != undefined ? S : C;
-}
-isFunction(Promise) && isFunction(Promise.resolve)
-&& Promise.resolve(test = new Promise(function(){})) == test
-|| function(){
-  function isThenable(it){
-    var then;
-    if(isObject(it))then = it.then;
-    return isFunction(then) ? then : false;
-  }
-  function handledRejectionOrHasOnRejected(promise){
-    var record = promise[RECORD]
-      , chain  = record.c
-      , i      = 0
-      , react;
-    if(record.h)return true;
-    while(chain.length > i){
-      react = chain[i++];
-      if(react.fail || handledRejectionOrHasOnRejected(react.P))return true;
-    }
-  }
-  function notify(record, isReject){
-    var chain = record.c;
-    if(isReject || chain.length)asap(function(){
-      var promise = record.p
-        , value   = record.v
-        , ok      = record.s == 1
-        , i       = 0;
-      if(isReject && !handledRejectionOrHasOnRejected(promise)){
-        setTimeout(function(){
-          if(!handledRejectionOrHasOnRejected(promise)){
-            if(cof(process) == 'process'){
-              process.emit('unhandledRejection', value, promise);
-            } else if(global.console && isFunction(console.error)){
-              console.error('Unhandled promise rejection', value);
-            }
-          }
-        }, 1e3);
-      } else while(chain.length > i)!function(react){
-        var cb = ok ? react.ok : react.fail
-          , ret, then;
-        try {
-          if(cb){
-            if(!ok)record.h = true;
-            ret = cb === true ? value : cb(value);
-            if(ret === react.P){
-              react.rej(TypeError(PROMISE + '-chain cycle'));
-            } else if(then = isThenable(ret)){
-              then.call(ret, react.res, react.rej);
-            } else react.res(ret);
-          } else react.rej(value);
-        } catch(err){
-          react.rej(err);
-        }
-      }(chain[i++]);
-      chain.length = 0;
-    });
-  }
-  function reject(value){
-    var record = this;
-    if(record.d)return;
-    record.d = true;
-    record = record.r || record; // unwrap
-    record.v = value;
-    record.s = 2;
-    notify(record, true);
-  }
-  function resolve(value){
-    var record = this
-      , then, wrapper;
-    if(record.d)return;
-    record.d = true;
-    record = record.r || record; // unwrap
-    try {
-      if(then = isThenable(value)){
-        wrapper = {r: record, d: false}; // wrap
-        then.call(value, ctx(resolve, wrapper, 1), ctx(reject, wrapper, 1));
-      } else {
-        record.v = value;
-        record.s = 1;
-        notify(record);
-      }
-    } catch(err){
-      reject.call(wrapper || {r: record, d: false}, err); // wrap
-    }
-  }
-  // 25.4.3.1 Promise(executor)
-  Promise = function(executor){
-    assertFunction(executor);
-    var record = {
-      p: assert.inst(this, Promise, PROMISE), // <- promise
-      c: [],                                  // <- chain
-      s: 0,                                   // <- state
-      d: false,                               // <- done
-      v: undefined,                           // <- value
-      h: false                                // <- handled rejection
-    };
-    $.hide(this, RECORD, record);
-    try {
-      executor(ctx(resolve, record, 1), ctx(reject, record, 1));
-    } catch(err){
-      reject.call(record, err);
-    }
-  };
-  $.mix(Promise.prototype, {
-    // 25.4.5.3 Promise.prototype.then(onFulfilled, onRejected)
-    then: function(onFulfilled, onRejected){
-      var S = assertObject(assertObject(this).constructor)[SPECIES];
-      var react = {
-        ok:   isFunction(onFulfilled) ? onFulfilled : true,
-        fail: isFunction(onRejected)  ? onRejected  : false
-      };
-      var P = react.P = new (S != undefined ? S : Promise)(function(res, rej){
-        react.res = assertFunction(res);
-        react.rej = assertFunction(rej);
-      });
-      var record = this[RECORD];
-      record.c.push(react);
-      record.s && notify(record);
-      return P;
-    },
-    // 25.4.5.1 Promise.prototype.catch(onRejected)
-    'catch': function(onRejected){
-      return this.then(undefined, onRejected);
-    }
-  });
-}();
-$def($def.G + $def.W + $def.F * (Promise != Base), {Promise: Promise});
-$def($def.S, PROMISE, {
-  // 25.4.4.5 Promise.reject(r)
-  reject: function(r){
-    return new (getConstructor(this))(function(res, rej){
-      rej(r);
-    });
-  },
-  // 25.4.4.6 Promise.resolve(x)
-  resolve: function(x){
-    return isObject(x) && RECORD in x && $.getProto(x) === this.prototype
-      ? x : new (getConstructor(this))(function(res){
-        res(x);
-      });
-  }
-});
-$def($def.S + $def.F * ($iter.fail(function(iter){
-  Promise.all(iter)['catch'](function(){});
-}) || $iter.DANGER_CLOSING), PROMISE, {
-  // 25.4.4.1 Promise.all(iterable)
-  all: function(iterable){
-    var C      = getConstructor(this)
-      , values = [];
-    return new C(function(resolve, reject){
-      forOf(iterable, false, values.push, values);
-      var remaining = values.length
-        , results   = Array(remaining);
-      if(remaining)$.each.call(values, function(promise, index){
-        C.resolve(promise).then(function(value){
-          results[index] = value;
-          --remaining || resolve(results);
-        }, reject);
-      });
-      else resolve(results);
-    });
-  },
-  // 25.4.4.4 Promise.race(iterable)
-  race: function(iterable){
-    var C = getConstructor(this);
-    return new C(function(resolve, reject){
-      forOf(iterable, false, function(promise){
-        C.resolve(promise).then(resolve, reject);
-      });
-    });
-  }
-});
-cof.set(Promise, PROMISE);
-require('./$.species')(Promise);
-},{"./$":20,"./$.assert":9,"./$.cof":11,"./$.ctx":15,"./$.def":16,"./$.iter":19,"./$.species":26,"./$.task":28,"./$.uid":29,"./$.wks":31}],52:[function(require,module,exports){
-var $         = require('./$')
-  , $def      = require('./$.def')
-  , setProto  = require('./$.set-proto')
-  , $iter     = require('./$.iter')
-  , ITER      = require('./$.uid').safe('iter')
-  , step      = $iter.step
-  , assert    = require('./$.assert')
-  , isObject  = $.isObject
-  , getDesc   = $.getDesc
-  , setDesc   = $.setDesc
-  , getProto  = $.getProto
-  , apply     = Function.apply
-  , assertObject = assert.obj
-  , isExtensible = Object.isExtensible || $.it;
-function Enumerate(iterated){
-  var keys = [], key;
-  for(key in iterated)keys.push(key);
-  $.set(this, ITER, {o: iterated, a: keys, i: 0});
-}
-$iter.create(Enumerate, 'Object', function(){
-  var iter = this[ITER]
-    , keys = iter.a
-    , key;
-  do {
-    if(iter.i >= keys.length)return step(1);
-  } while(!((key = keys[iter.i++]) in iter.o));
-  return step(0, key);
-});
-
-function wrap(fn){
-  return function(it){
-    assertObject(it);
-    try {
-      fn.apply(undefined, arguments);
-      return true;
-    } catch(e){
-      return false;
-    }
-  };
-}
-
-function reflectGet(target, propertyKey/*, receiver*/){
-  var receiver = arguments.length < 3 ? target : arguments[2]
-    , desc = getDesc(assertObject(target), propertyKey), proto;
-  if(desc)return $.has(desc, 'value')
-    ? desc.value
-    : desc.get === undefined
-      ? undefined
-      : desc.get.call(receiver);
-  return isObject(proto = getProto(target))
-    ? reflectGet(proto, propertyKey, receiver)
-    : undefined;
-}
-function reflectSet(target, propertyKey, V/*, receiver*/){
-  var receiver = arguments.length < 4 ? target : arguments[3]
-    , ownDesc  = getDesc(assertObject(target), propertyKey)
-    , existingDescriptor, proto;
-  if(!ownDesc){
-    if(isObject(proto = getProto(target))){
-      return reflectSet(proto, propertyKey, V, receiver);
-    }
-    ownDesc = $.desc(0);
-  }
-  if($.has(ownDesc, 'value')){
-    if(ownDesc.writable === false || !isObject(receiver))return false;
-    existingDescriptor = getDesc(receiver, propertyKey) || $.desc(0);
-    existingDescriptor.value = V;
-    setDesc(receiver, propertyKey, existingDescriptor);
-    return true;
-  }
-  return ownDesc.set === undefined ? false : (ownDesc.set.call(receiver, V), true);
-}
-
-var reflect = {
-  // 26.1.1 Reflect.apply(target, thisArgument, argumentsList)
-  apply: require('./$.ctx')(Function.call, apply, 3),
-  // 26.1.2 Reflect.construct(target, argumentsList [, newTarget])
-  construct: function(target, argumentsList /*, newTarget*/){
-    var proto    = assert.fn(arguments.length < 3 ? target : arguments[2]).prototype
-      , instance = $.create(isObject(proto) ? proto : Object.prototype)
-      , result   = apply.call(target, instance, argumentsList);
-    return isObject(result) ? result : instance;
-  },
-  // 26.1.3 Reflect.defineProperty(target, propertyKey, attributes)
-  defineProperty: wrap(setDesc),
-  // 26.1.4 Reflect.deleteProperty(target, propertyKey)
-  deleteProperty: function(target, propertyKey){
-    var desc = getDesc(assertObject(target), propertyKey);
-    return desc && !desc.configurable ? false : delete target[propertyKey];
-  },
-  // 26.1.5 Reflect.enumerate(target)
-  enumerate: function(target){
-    return new Enumerate(assertObject(target));
-  },
-  // 26.1.6 Reflect.get(target, propertyKey [, receiver])
-  get: reflectGet,
-  // 26.1.7 Reflect.getOwnPropertyDescriptor(target, propertyKey)
-  getOwnPropertyDescriptor: function(target, propertyKey){
-    return getDesc(assertObject(target), propertyKey);
-  },
-  // 26.1.8 Reflect.getPrototypeOf(target)
-  getPrototypeOf: function(target){
-    return getProto(assertObject(target));
-  },
-  // 26.1.9 Reflect.has(target, propertyKey)
-  has: function(target, propertyKey){
-    return propertyKey in target;
-  },
-  // 26.1.10 Reflect.isExtensible(target)
-  isExtensible: function(target){
-    return !!isExtensible(assertObject(target));
-  },
-  // 26.1.11 Reflect.ownKeys(target)
-  ownKeys: require('./$.own-keys'),
-  // 26.1.12 Reflect.preventExtensions(target)
-  preventExtensions: wrap(Object.preventExtensions || $.it),
-  // 26.1.13 Reflect.set(target, propertyKey, V [, receiver])
-  set: reflectSet
-};
-// 26.1.14 Reflect.setPrototypeOf(target, proto)
-if(setProto)reflect.setPrototypeOf = function(target, proto){
-  setProto(assertObject(target), proto);
-  return true;
-};
-
-$def($def.G, {Reflect: {}});
-$def($def.S, 'Reflect', reflect);
-},{"./$":20,"./$.assert":9,"./$.ctx":15,"./$.def":16,"./$.iter":19,"./$.own-keys":22,"./$.set-proto":25,"./$.uid":29}],53:[function(require,module,exports){
-var $      = require('./$')
-  , cof    = require('./$.cof')
-  , RegExp = $.g.RegExp
-  , Base   = RegExp
-  , proto  = RegExp.prototype;
-if($.FW && $.DESC){
-  // RegExp allows a regex with flags as the pattern
-  if(!function(){try{ return RegExp(/a/g, 'i') == '/a/i'; }catch(e){ /* empty */ }}()){
-    RegExp = function RegExp(pattern, flags){
-      return new Base(cof(pattern) == 'RegExp' && flags !== undefined
-        ? pattern.source : pattern, flags);
-    };
-    $.each.call($.getNames(Base), function(key){
-      key in RegExp || $.setDesc(RegExp, key, {
-        configurable: true,
-        get: function(){ return Base[key]; },
-        set: function(it){ Base[key] = it; }
-      });
-    });
-    proto.constructor = RegExp;
-    RegExp.prototype = proto;
-    $.hide($.g, 'RegExp', RegExp);
-  }
-  // 21.2.5.3 get RegExp.prototype.flags()
-  if(/./g.flags != 'g')$.setDesc(proto, 'flags', {
-    configurable: true,
-    get: require('./$.replacer')(/^.*\/(\w*)$/, '$1')
-  });
-}
-require('./$.species')(RegExp);
-},{"./$":20,"./$.cof":11,"./$.replacer":24,"./$.species":26}],54:[function(require,module,exports){
-'use strict';
-var strong = require('./$.collection-strong');
-
-// 23.2 Set Objects
-require('./$.collection')('Set', {
-  // 23.2.3.1 Set.prototype.add(value)
-  add: function(value){
-    return strong.def(this, value = value === 0 ? 0 : value, value);
-  }
-}, strong);
-},{"./$.collection":14,"./$.collection-strong":12}],55:[function(require,module,exports){
-var $def = require('./$.def');
-$def($def.P, 'String', {
-  // 21.1.3.3 String.prototype.codePointAt(pos)
-  codePointAt: require('./$.string-at')(false)
-});
-},{"./$.def":16,"./$.string-at":27}],56:[function(require,module,exports){
-'use strict';
-var $    = require('./$')
-  , cof  = require('./$.cof')
-  , $def = require('./$.def')
-  , toLength = $.toLength;
-
-$def($def.P, 'String', {
-  // 21.1.3.6 String.prototype.endsWith(searchString [, endPosition])
-  endsWith: function(searchString /*, endPosition = @length */){
-    if(cof(searchString) == 'RegExp')throw TypeError();
-    var that = String($.assertDefined(this))
-      , endPosition = arguments[1]
-      , len = toLength(that.length)
-      , end = endPosition === undefined ? len : Math.min(toLength(endPosition), len);
-    searchString += '';
-    return that.slice(end - searchString.length, end) === searchString;
-  }
-});
-},{"./$":20,"./$.cof":11,"./$.def":16}],57:[function(require,module,exports){
-var $def    = require('./$.def')
-  , toIndex = require('./$').toIndex
-  , fromCharCode = String.fromCharCode;
-
-$def($def.S, 'String', {
-  // 21.1.2.2 String.fromCodePoint(...codePoints)
-  fromCodePoint: function(x){ // eslint-disable-line no-unused-vars
-    var res = []
-      , len = arguments.length
-      , i   = 0
-      , code;
-    while(len > i){
-      code = +arguments[i++];
-      if(toIndex(code, 0x10ffff) !== code)throw RangeError(code + ' is not a valid code point');
-      res.push(code < 0x10000
-        ? fromCharCode(code)
-        : fromCharCode(((code -= 0x10000) >> 10) + 0xd800, code % 0x400 + 0xdc00)
-      );
-    } return res.join('');
-  }
-});
-},{"./$":20,"./$.def":16}],58:[function(require,module,exports){
-'use strict';
-var $    = require('./$')
-  , cof  = require('./$.cof')
-  , $def = require('./$.def');
-
-$def($def.P, 'String', {
-  // 21.1.3.7 String.prototype.includes(searchString, position = 0)
-  includes: function(searchString /*, position = 0 */){
-    if(cof(searchString) == 'RegExp')throw TypeError();
-    return !!~String($.assertDefined(this)).indexOf(searchString, arguments[1]);
-  }
-});
-},{"./$":20,"./$.cof":11,"./$.def":16}],59:[function(require,module,exports){
-var set   = require('./$').set
-  , at    = require('./$.string-at')(true)
-  , ITER  = require('./$.uid').safe('iter')
-  , $iter = require('./$.iter')
-  , step  = $iter.step;
-
-// 21.1.3.27 String.prototype[@@iterator]()
-$iter.std(String, 'String', function(iterated){
-  set(this, ITER, {o: String(iterated), i: 0});
-// 21.1.5.2.1 %StringIteratorPrototype%.next()
-}, function(){
-  var iter  = this[ITER]
-    , O     = iter.o
-    , index = iter.i
-    , point;
-  if(index >= O.length)return step(1);
-  point = at.call(O, index);
-  iter.i += point.length;
-  return step(0, point);
-});
-},{"./$":20,"./$.iter":19,"./$.string-at":27,"./$.uid":29}],60:[function(require,module,exports){
-var $    = require('./$')
-  , $def = require('./$.def');
-
-$def($def.S, 'String', {
-  // 21.1.2.4 String.raw(callSite, ...substitutions)
-  raw: function(callSite){
-    var raw = $.toObject(callSite.raw)
-      , len = $.toLength(raw.length)
-      , sln = arguments.length
-      , res = []
-      , i   = 0;
-    while(len > i){
-      res.push(String(raw[i++]));
-      if(i < sln)res.push(String(arguments[i]));
-    } return res.join('');
-  }
-});
-},{"./$":20,"./$.def":16}],61:[function(require,module,exports){
-'use strict';
-var $    = require('./$')
-  , $def = require('./$.def');
-
-$def($def.P, 'String', {
-  // 21.1.3.13 String.prototype.repeat(count)
-  repeat: function(count){
-    var str = String($.assertDefined(this))
-      , res = ''
-      , n   = $.toInteger(count);
-    if(n < 0 || n == Infinity)throw RangeError("Count can't be negative");
-    for(;n > 0; (n >>>= 1) && (str += str))if(n & 1)res += str;
-    return res;
-  }
-});
-},{"./$":20,"./$.def":16}],62:[function(require,module,exports){
-'use strict';
-var $    = require('./$')
-  , cof  = require('./$.cof')
-  , $def = require('./$.def');
-
-$def($def.P, 'String', {
-  // 21.1.3.18 String.prototype.startsWith(searchString [, position ])
-  startsWith: function(searchString /*, position = 0 */){
-    if(cof(searchString) == 'RegExp')throw TypeError();
-    var that  = String($.assertDefined(this))
-      , index = $.toLength(Math.min(arguments[1], that.length));
-    searchString += '';
-    return that.slice(index, index + searchString.length) === searchString;
-  }
-});
-},{"./$":20,"./$.cof":11,"./$.def":16}],63:[function(require,module,exports){
-'use strict';
-// ECMAScript 6 symbols shim
-var $        = require('./$')
-  , setTag   = require('./$.cof').set
-  , uid      = require('./$.uid')
-  , $def     = require('./$.def')
-  , keyOf    = require('./$.keyof')
-  , has      = $.has
-  , hide     = $.hide
-  , getNames = $.getNames
-  , toObject = $.toObject
-  , Symbol   = $.g.Symbol
-  , Base     = Symbol
-  , setter   = false
-  , TAG      = uid.safe('tag')
-  , SymbolRegistry = {}
-  , AllSymbols     = {};
-
-function wrap(tag){
-  var sym = AllSymbols[tag] = $.set($.create(Symbol.prototype), TAG, tag);
-  $.DESC && setter && $.setDesc(Object.prototype, tag, {
-    configurable: true,
-    set: function(value){
-      hide(this, tag, value);
-    }
-  });
-  return sym;
-}
-
-// 19.4.1.1 Symbol([description])
-if(!$.isFunction(Symbol)){
-  Symbol = function(description){
-    if(this instanceof Symbol)throw TypeError('Symbol is not a constructor');
-    return wrap(uid(description));
-  };
-  hide(Symbol.prototype, 'toString', function(){
-    return this[TAG];
-  });
-}
-$def($def.G + $def.W, {Symbol: Symbol});
-
-var symbolStatics = {
-  // 19.4.2.1 Symbol.for(key)
-  'for': function(key){
-    return has(SymbolRegistry, key += '')
-      ? SymbolRegistry[key]
-      : SymbolRegistry[key] = Symbol(key);
-  },
-  // 19.4.2.5 Symbol.keyFor(sym)
-  keyFor: function(key){
-    return keyOf(SymbolRegistry, key);
-  },
-  pure: uid.safe,
-  set: $.set,
-  useSetter: function(){ setter = true; },
-  useSimple: function(){ setter = false; }
-};
-// 19.4.2.2 Symbol.hasInstance
-// 19.4.2.3 Symbol.isConcatSpreadable
-// 19.4.2.4 Symbol.iterator
-// 19.4.2.6 Symbol.match
-// 19.4.2.8 Symbol.replace
-// 19.4.2.9 Symbol.search
-// 19.4.2.10 Symbol.species
-// 19.4.2.11 Symbol.split
-// 19.4.2.12 Symbol.toPrimitive
-// 19.4.2.13 Symbol.toStringTag
-// 19.4.2.14 Symbol.unscopables
-$.each.call((
-    'hasInstance,isConcatSpreadable,iterator,match,replace,search,' +
-    'species,split,toPrimitive,toStringTag,unscopables'
-  ).split(','), function(it){
-    var sym = require('./$.wks')(it);
-    symbolStatics[it] = Symbol === Base ? sym : wrap(sym);
-  }
-);
-
-setter = true;
-
-$def($def.S, 'Symbol', symbolStatics);
-
-$def($def.S + $def.F * (Symbol != Base), 'Object', {
-  // 19.1.2.7 Object.getOwnPropertyNames(O)
-  getOwnPropertyNames: function(it){
-    var names = getNames(toObject(it)), result = [], key, i = 0;
-    while(names.length > i)has(AllSymbols, key = names[i++]) || result.push(key);
-    return result;
-  },
-  // 19.1.2.8 Object.getOwnPropertySymbols(O)
-  getOwnPropertySymbols: function(it){
-    var names = getNames(toObject(it)), result = [], key, i = 0;
-    while(names.length > i)has(AllSymbols, key = names[i++]) && result.push(AllSymbols[key]);
-    return result;
-  }
-});
-
-setTag(Symbol, 'Symbol');
-// 20.2.1.9 Math[@@toStringTag]
-setTag(Math, 'Math', true);
-// 24.3.3 JSON[@@toStringTag]
-setTag($.g.JSON, 'JSON', true);
-},{"./$":20,"./$.cof":11,"./$.def":16,"./$.keyof":21,"./$.uid":29,"./$.wks":31}],64:[function(require,module,exports){
-'use strict';
-var $         = require('./$')
-  , weak      = require('./$.collection-weak')
-  , leakStore = weak.leakStore
-  , ID        = weak.ID
-  , WEAK      = weak.WEAK
-  , has       = $.has
-  , isObject  = $.isObject
-  , isFrozen  = Object.isFrozen || $.core.Object.isFrozen
-  , tmp       = {};
-
-// 23.3 WeakMap Objects
-var WeakMap = require('./$.collection')('WeakMap', {
-  // 23.3.3.3 WeakMap.prototype.get(key)
-  get: function(key){
-    if(isObject(key)){
-      if(isFrozen(key))return leakStore(this).get(key);
-      if(has(key, WEAK))return key[WEAK][this[ID]];
-    }
-  },
-  // 23.3.3.5 WeakMap.prototype.set(key, value)
-  set: function(key, value){
-    return weak.def(this, key, value);
-  }
-}, weak, true, true);
-
-// IE11 WeakMap frozen keys fix
-if($.FW && new WeakMap().set((Object.freeze || Object)(tmp), 7).get(tmp) != 7){
-  $.each.call(['delete', 'has', 'get', 'set'], function(key){
-    var method = WeakMap.prototype[key];
-    WeakMap.prototype[key] = function(a, b){
-      // store frozen objects on leaky map
-      if(isObject(a) && isFrozen(a)){
-        var result = leakStore(this)[key](a, b);
-        return key == 'set' ? this : result;
-      // store all the rest on native weakmap
-      } return method.call(this, a, b);
-    };
-  });
-}
-},{"./$":20,"./$.collection":14,"./$.collection-weak":13}],65:[function(require,module,exports){
-'use strict';
-var weak = require('./$.collection-weak');
-
-// 23.4 WeakSet Objects
-require('./$.collection')('WeakSet', {
-  // 23.4.3.1 WeakSet.prototype.add(value)
-  add: function(value){
-    return weak.def(this, value, true);
-  }
-}, weak, false, true);
-},{"./$.collection":14,"./$.collection-weak":13}],66:[function(require,module,exports){
-// https://github.com/domenic/Array.prototype.includes
-var $def = require('./$.def');
-$def($def.P, 'Array', {
-  includes: require('./$.array-includes')(true)
-});
-require('./$.unscope')('includes');
-},{"./$.array-includes":7,"./$.def":16,"./$.unscope":30}],67:[function(require,module,exports){
-// https://gist.github.com/WebReflection/9353781
-var $       = require('./$')
-  , $def    = require('./$.def')
-  , ownKeys = require('./$.own-keys');
-
-$def($def.S, 'Object', {
-  getOwnPropertyDescriptors: function(object){
-    var O      = $.toObject(object)
-      , result = {};
-    $.each.call(ownKeys(O), function(key){
-      $.setDesc(result, key, $.desc(0, $.getDesc(O, key)));
-    });
-    return result;
-  }
-});
-},{"./$":20,"./$.def":16,"./$.own-keys":22}],68:[function(require,module,exports){
-// http://goo.gl/XkBrjD
-var $    = require('./$')
-  , $def = require('./$.def');
-function createObjectToArray(isEntries){
-  return function(object){
-    var O      = $.toObject(object)
-      , keys   = $.getKeys(object)
-      , length = keys.length
-      , i      = 0
-      , result = Array(length)
-      , key;
-    if(isEntries)while(length > i)result[i] = [key = keys[i++], O[key]];
-    else while(length > i)result[i] = O[keys[i++]];
-    return result;
-  };
-}
-$def($def.S, 'Object', {
-  values:  createObjectToArray(false),
-  entries: createObjectToArray(true)
-});
-},{"./$":20,"./$.def":16}],69:[function(require,module,exports){
-// https://gist.github.com/kangax/9698100
-var $def = require('./$.def');
-$def($def.S, 'RegExp', {
-  escape: require('./$.replacer')(/([\\\-[\]{}()*+?.,^$|])/g, '\\$1', true)
-});
-},{"./$.def":16,"./$.replacer":24}],70:[function(require,module,exports){
-// https://github.com/mathiasbynens/String.prototype.at
-var $def = require('./$.def');
-$def($def.P, 'String', {
-  at: require('./$.string-at')(true)
-});
-},{"./$.def":16,"./$.string-at":27}],71:[function(require,module,exports){
-// JavaScript 1.6 / Strawman array statics shim
-var $       = require('./$')
-  , $def    = require('./$.def')
-  , core    = $.core
-  , statics = {};
-function setStatics(keys, length){
-  $.each.call(keys.split(','), function(key){
-    if(length == undefined && key in core.Array)statics[key] = core.Array[key];
-    else if(key in [])statics[key] = require('./$.ctx')(Function.call, [][key], length);
-  });
-}
-setStatics('pop,reverse,shift,keys,values,entries', 1);
-setStatics('indexOf,every,some,forEach,map,filter,find,findIndex,includes', 3);
-setStatics('join,slice,concat,push,splice,unshift,sort,lastIndexOf,' +
-           'reduce,reduceRight,copyWithin,fill,turn');
-$def($def.S, 'Array', statics);
-},{"./$":20,"./$.ctx":15,"./$.def":16}],72:[function(require,module,exports){
-require('./es6.array.iterator');
-var $         = require('./$')
-  , Iterators = require('./$.iter').Iterators
-  , ITERATOR  = require('./$.wks')('iterator')
-  , NodeList  = $.g.NodeList;
-if($.FW && NodeList && !(ITERATOR in NodeList.prototype)){
-  $.hide(NodeList.prototype, ITERATOR, Iterators.Array);
-}
-Iterators.NodeList = Iterators.Array;
-},{"./$":20,"./$.iter":19,"./$.wks":31,"./es6.array.iterator":38}],73:[function(require,module,exports){
-var $def  = require('./$.def')
-  , $task = require('./$.task');
-$def($def.G + $def.B, {
-  setImmediate:   $task.set,
-  clearImmediate: $task.clear
-});
-},{"./$.def":16,"./$.task":28}],74:[function(require,module,exports){
-// ie9- setTimeout & setInterval additional parameters fix
-var $       = require('./$')
-  , $def    = require('./$.def')
-  , invoke  = require('./$.invoke')
-  , partial = require('./$.partial')
-  , MSIE    = !!$.g.navigator && /MSIE .\./.test(navigator.userAgent); // <- dirty ie9- check
-function wrap(set){
-  return MSIE ? function(fn, time /*, ...args */){
-    return set(invoke(
-      partial,
-      [].slice.call(arguments, 2),
-      $.isFunction(fn) ? fn : Function(fn)
-    ), time);
-  } : set;
-}
-$def($def.G + $def.B + $def.F * MSIE, {
-  setTimeout:  wrap($.g.setTimeout),
-  setInterval: wrap($.g.setInterval)
-});
-},{"./$":20,"./$.def":16,"./$.invoke":18,"./$.partial":23}],75:[function(require,module,exports){
-require('./modules/es5');
-require('./modules/es6.symbol');
-require('./modules/es6.object.assign');
-require('./modules/es6.object.is');
-require('./modules/es6.object.set-prototype-of');
-require('./modules/es6.object.to-string');
-require('./modules/es6.object.statics-accept-primitives');
-require('./modules/es6.function.name');
-require('./modules/es6.number.constructor');
-require('./modules/es6.number.statics');
-require('./modules/es6.math');
-require('./modules/es6.string.from-code-point');
-require('./modules/es6.string.raw');
-require('./modules/es6.string.iterator');
-require('./modules/es6.string.code-point-at');
-require('./modules/es6.string.ends-with');
-require('./modules/es6.string.includes');
-require('./modules/es6.string.repeat');
-require('./modules/es6.string.starts-with');
-require('./modules/es6.array.from');
-require('./modules/es6.array.of');
-require('./modules/es6.array.iterator');
-require('./modules/es6.array.species');
-require('./modules/es6.array.copy-within');
-require('./modules/es6.array.fill');
-require('./modules/es6.array.find');
-require('./modules/es6.array.find-index');
-require('./modules/es6.regexp');
-require('./modules/es6.promise');
-require('./modules/es6.map');
-require('./modules/es6.set');
-require('./modules/es6.weak-map');
-require('./modules/es6.weak-set');
-require('./modules/es6.reflect');
-require('./modules/es7.array.includes');
-require('./modules/es7.string.at');
-require('./modules/es7.regexp.escape');
-require('./modules/es7.object.get-own-property-descriptors');
-require('./modules/es7.object.to-array');
-require('./modules/js.array.statics');
-require('./modules/web.timers');
-require('./modules/web.immediate');
-require('./modules/web.dom.iterable');
-module.exports = require('./modules/$').core;
-},{"./modules/$":20,"./modules/es5":32,"./modules/es6.array.copy-within":33,"./modules/es6.array.fill":34,"./modules/es6.array.find":36,"./modules/es6.array.find-index":35,"./modules/es6.array.from":37,"./modules/es6.array.iterator":38,"./modules/es6.array.of":39,"./modules/es6.array.species":40,"./modules/es6.function.name":41,"./modules/es6.map":42,"./modules/es6.math":43,"./modules/es6.number.constructor":44,"./modules/es6.number.statics":45,"./modules/es6.object.assign":46,"./modules/es6.object.is":47,"./modules/es6.object.set-prototype-of":48,"./modules/es6.object.statics-accept-primitives":49,"./modules/es6.object.to-string":50,"./modules/es6.promise":51,"./modules/es6.reflect":52,"./modules/es6.regexp":53,"./modules/es6.set":54,"./modules/es6.string.code-point-at":55,"./modules/es6.string.ends-with":56,"./modules/es6.string.from-code-point":57,"./modules/es6.string.includes":58,"./modules/es6.string.iterator":59,"./modules/es6.string.raw":60,"./modules/es6.string.repeat":61,"./modules/es6.string.starts-with":62,"./modules/es6.symbol":63,"./modules/es6.weak-map":64,"./modules/es6.weak-set":65,"./modules/es7.array.includes":66,"./modules/es7.object.get-own-property-descriptors":67,"./modules/es7.object.to-array":68,"./modules/es7.regexp.escape":69,"./modules/es7.string.at":70,"./modules/js.array.statics":71,"./modules/web.dom.iterable":72,"./modules/web.immediate":73,"./modules/web.timers":74}],76:[function(require,module,exports){
-(function (global){
-/**
- * Copyright (c) 2014, Facebook, Inc.
- * All rights reserved.
+/*!
+ * Autolinker.js
+ * 0.17.1
  *
- * This source code is licensed under the BSD-style license found in the
- * https://raw.github.com/facebook/regenerator/master/LICENSE file. An
- * additional grant of patent rights can be found in the PATENTS file in
- * the same directory.
+ * Copyright(c) 2015 Gregory Jacobs <greg@greg-jacobs.com>
+ * MIT Licensed. http://www.opensource.org/licenses/mit-license.php
+ *
+ * https://github.com/gregjacobs/Autolinker.js
  */
-
-!(function(global) {
-  "use strict";
-
-  var hasOwn = Object.prototype.hasOwnProperty;
-  var undefined; // More compressible than void 0.
-  var iteratorSymbol =
-    typeof Symbol === "function" && Symbol.iterator || "@@iterator";
-
-  var inModule = typeof module === "object";
-  var runtime = global.regeneratorRuntime;
-  if (runtime) {
-    if (inModule) {
-      // If regeneratorRuntime is defined globally and we're in a module,
-      // make the exports object identical to regeneratorRuntime.
-      module.exports = runtime;
-    }
-    // Don't bother evaluating the rest of this file if the runtime was
-    // already defined globally.
-    return;
-  }
-
-  // Define the runtime globally (as expected by generated code) as either
-  // module.exports (if we're in a module) or a new, empty object.
-  runtime = global.regeneratorRuntime = inModule ? module.exports : {};
-
-  function wrap(innerFn, outerFn, self, tryLocsList) {
-    return new Generator(innerFn, outerFn, self || null, tryLocsList || []);
-  }
-  runtime.wrap = wrap;
-
-  // Try/catch helper to minimize deoptimizations. Returns a completion
-  // record like context.tryEntries[i].completion. This interface could
-  // have been (and was previously) designed to take a closure to be
-  // invoked without arguments, but in all the cases we care about we
-  // already have an existing method we want to call, so there's no need
-  // to create a new function object. We can even get away with assuming
-  // the method takes exactly one argument, since that happens to be true
-  // in every case, so we don't have to touch the arguments object. The
-  // only additional allocation required is the completion record, which
-  // has a stable shape and so hopefully should be cheap to allocate.
-  function tryCatch(fn, obj, arg) {
-    try {
-      return { type: "normal", arg: fn.call(obj, arg) };
-    } catch (err) {
-      return { type: "throw", arg: err };
-    }
-  }
-
-  var GenStateSuspendedStart = "suspendedStart";
-  var GenStateSuspendedYield = "suspendedYield";
-  var GenStateExecuting = "executing";
-  var GenStateCompleted = "completed";
-
-  // Returning this object from the innerFn has the same effect as
-  // breaking out of the dispatch switch statement.
-  var ContinueSentinel = {};
-
-  // Dummy constructor functions that we use as the .constructor and
-  // .constructor.prototype properties for functions that return Generator
-  // objects. For full spec compliance, you may wish to configure your
-  // minifier not to mangle the names of these two functions.
-  function GeneratorFunction() {}
-  function GeneratorFunctionPrototype() {}
-
-  var Gp = GeneratorFunctionPrototype.prototype = Generator.prototype;
-  GeneratorFunction.prototype = Gp.constructor = GeneratorFunctionPrototype;
-  GeneratorFunctionPrototype.constructor = GeneratorFunction;
-  GeneratorFunction.displayName = "GeneratorFunction";
-
-  runtime.isGeneratorFunction = function(genFun) {
-    var ctor = typeof genFun === "function" && genFun.constructor;
-    return ctor
-      ? ctor === GeneratorFunction ||
-        // For the native GeneratorFunction constructor, the best we can
-        // do is to check its .name property.
-        (ctor.displayName || ctor.name) === "GeneratorFunction"
-      : false;
-  };
-
-  runtime.mark = function(genFun) {
-    genFun.__proto__ = GeneratorFunctionPrototype;
-    genFun.prototype = Object.create(Gp);
-    return genFun;
-  };
-
-  runtime.async = function(innerFn, outerFn, self, tryLocsList) {
-    return new Promise(function(resolve, reject) {
-      var generator = wrap(innerFn, outerFn, self, tryLocsList);
-      var callNext = step.bind(generator.next);
-      var callThrow = step.bind(generator["throw"]);
-
-      function step(arg) {
-        var record = tryCatch(this, null, arg);
-        if (record.type === "throw") {
-          reject(record.arg);
-          return;
-        }
-
-        var info = record.arg;
-        if (info.done) {
-          resolve(info.value);
-        } else {
-          Promise.resolve(info.value).then(callNext, callThrow);
-        }
-      }
-
-      callNext();
-    });
-  };
-
-  function Generator(innerFn, outerFn, self, tryLocsList) {
-    var generator = outerFn ? Object.create(outerFn.prototype) : this;
-    var context = new Context(tryLocsList);
-    var state = GenStateSuspendedStart;
-
-    function invoke(method, arg) {
-      if (state === GenStateExecuting) {
-        throw new Error("Generator is already running");
-      }
-
-      if (state === GenStateCompleted) {
-        // Be forgiving, per 25.3.3.3.3 of the spec:
-        // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-generatorresume
-        return doneResult();
-      }
-
-      while (true) {
-        var delegate = context.delegate;
-        if (delegate) {
-          var record = tryCatch(
-            delegate.iterator[method],
-            delegate.iterator,
-            arg
-          );
-
-          if (record.type === "throw") {
-            context.delegate = null;
-
-            // Like returning generator.throw(uncaught), but without the
-            // overhead of an extra function call.
-            method = "throw";
-            arg = record.arg;
-
-            continue;
-          }
-
-          // Delegate generator ran and handled its own exceptions so
-          // regardless of what the method was, we continue as if it is
-          // "next" with an undefined arg.
-          method = "next";
-          arg = undefined;
-
-          var info = record.arg;
-          if (info.done) {
-            context[delegate.resultName] = info.value;
-            context.next = delegate.nextLoc;
-          } else {
-            state = GenStateSuspendedYield;
-            return info;
-          }
-
-          context.delegate = null;
-        }
-
-        if (method === "next") {
-          if (state === GenStateSuspendedStart &&
-              typeof arg !== "undefined") {
-            // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-generatorresume
-            throw new TypeError(
-              "attempt to send " + JSON.stringify(arg) + " to newborn generator"
-            );
-          }
-
-          if (state === GenStateSuspendedYield) {
-            context.sent = arg;
-          } else {
-            delete context.sent;
-          }
-
-        } else if (method === "throw") {
-          if (state === GenStateSuspendedStart) {
-            state = GenStateCompleted;
-            throw arg;
-          }
-
-          if (context.dispatchException(arg)) {
-            // If the dispatched exception was caught by a catch block,
-            // then let that catch block handle the exception normally.
-            method = "next";
-            arg = undefined;
-          }
-
-        } else if (method === "return") {
-          context.abrupt("return", arg);
-        }
-
-        state = GenStateExecuting;
-
-        var record = tryCatch(innerFn, self, context);
-        if (record.type === "normal") {
-          // If an exception is thrown from innerFn, we leave state ===
-          // GenStateExecuting and loop back for another invocation.
-          state = context.done
-            ? GenStateCompleted
-            : GenStateSuspendedYield;
-
-          var info = {
-            value: record.arg,
-            done: context.done
-          };
-
-          if (record.arg === ContinueSentinel) {
-            if (context.delegate && method === "next") {
-              // Deliberately forget the last sent value so that we don't
-              // accidentally pass it on to the delegate.
-              arg = undefined;
-            }
-          } else {
-            return info;
-          }
-
-        } else if (record.type === "throw") {
-          state = GenStateCompleted;
-
-          if (method === "next") {
-            context.dispatchException(record.arg);
-          } else {
-            arg = record.arg;
-          }
-        }
-      }
-    }
-
-    generator.next = invoke.bind(generator, "next");
-    generator["throw"] = invoke.bind(generator, "throw");
-    generator["return"] = invoke.bind(generator, "return");
-
-    return generator;
-  }
-
-  Gp[iteratorSymbol] = function() {
-    return this;
-  };
-
-  Gp.toString = function() {
-    return "[object Generator]";
-  };
-
-  function pushTryEntry(locs) {
-    var entry = { tryLoc: locs[0] };
-
-    if (1 in locs) {
-      entry.catchLoc = locs[1];
-    }
-
-    if (2 in locs) {
-      entry.finallyLoc = locs[2];
-      entry.afterLoc = locs[3];
-    }
-
-    this.tryEntries.push(entry);
-  }
-
-  function resetTryEntry(entry) {
-    var record = entry.completion || {};
-    record.type = "normal";
-    delete record.arg;
-    entry.completion = record;
-  }
-
-  function Context(tryLocsList) {
-    // The root entry object (effectively a try statement without a catch
-    // or a finally block) gives us a place to store values thrown from
-    // locations where there is no enclosing try statement.
-    this.tryEntries = [{ tryLoc: "root" }];
-    tryLocsList.forEach(pushTryEntry, this);
-    this.reset();
-  }
-
-  runtime.keys = function(object) {
-    var keys = [];
-    for (var key in object) {
-      keys.push(key);
-    }
-    keys.reverse();
-
-    // Rather than returning an object with a next method, we keep
-    // things simple and return the next function itself.
-    return function next() {
-      while (keys.length) {
-        var key = keys.pop();
-        if (key in object) {
-          next.value = key;
-          next.done = false;
-          return next;
-        }
-      }
-
-      // To avoid creating an additional object, we just hang the .value
-      // and .done properties off the next function object itself. This
-      // also ensures that the minifier will not anonymize the function.
-      next.done = true;
-      return next;
-    };
-  };
-
-  function values(iterable) {
-    if (iterable) {
-      var iteratorMethod = iterable[iteratorSymbol];
-      if (iteratorMethod) {
-        return iteratorMethod.call(iterable);
-      }
-
-      if (typeof iterable.next === "function") {
-        return iterable;
-      }
-
-      if (!isNaN(iterable.length)) {
-        var i = -1, next = function next() {
-          while (++i < iterable.length) {
-            if (hasOwn.call(iterable, i)) {
-              next.value = iterable[i];
-              next.done = false;
-              return next;
-            }
-          }
-
-          next.value = undefined;
-          next.done = true;
-
-          return next;
-        };
-
-        return next.next = next;
-      }
-    }
-
-    // Return an iterator with no values.
-    return { next: doneResult };
-  }
-  runtime.values = values;
-
-  function doneResult() {
-    return { value: undefined, done: true };
-  }
-
-  Context.prototype = {
-    constructor: Context,
-
-    reset: function() {
-      this.prev = 0;
-      this.next = 0;
-      this.sent = undefined;
-      this.done = false;
-      this.delegate = null;
-
-      this.tryEntries.forEach(resetTryEntry);
-
-      // Pre-initialize at least 20 temporary variables to enable hidden
-      // class optimizations for simple generators.
-      for (var tempIndex = 0, tempName;
-           hasOwn.call(this, tempName = "t" + tempIndex) || tempIndex < 20;
-           ++tempIndex) {
-        this[tempName] = null;
-      }
-    },
-
-    stop: function() {
-      this.done = true;
-
-      var rootEntry = this.tryEntries[0];
-      var rootRecord = rootEntry.completion;
-      if (rootRecord.type === "throw") {
-        throw rootRecord.arg;
-      }
-
-      return this.rval;
-    },
-
-    dispatchException: function(exception) {
-      if (this.done) {
-        throw exception;
-      }
-
-      var context = this;
-      function handle(loc, caught) {
-        record.type = "throw";
-        record.arg = exception;
-        context.next = loc;
-        return !!caught;
-      }
-
-      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
-        var entry = this.tryEntries[i];
-        var record = entry.completion;
-
-        if (entry.tryLoc === "root") {
-          // Exception thrown outside of any try block that could handle
-          // it, so set the completion value of the entire function to
-          // throw the exception.
-          return handle("end");
-        }
-
-        if (entry.tryLoc <= this.prev) {
-          var hasCatch = hasOwn.call(entry, "catchLoc");
-          var hasFinally = hasOwn.call(entry, "finallyLoc");
-
-          if (hasCatch && hasFinally) {
-            if (this.prev < entry.catchLoc) {
-              return handle(entry.catchLoc, true);
-            } else if (this.prev < entry.finallyLoc) {
-              return handle(entry.finallyLoc);
-            }
-
-          } else if (hasCatch) {
-            if (this.prev < entry.catchLoc) {
-              return handle(entry.catchLoc, true);
-            }
-
-          } else if (hasFinally) {
-            if (this.prev < entry.finallyLoc) {
-              return handle(entry.finallyLoc);
-            }
-
-          } else {
-            throw new Error("try statement without catch or finally");
-          }
-        }
-      }
-    },
-
-    abrupt: function(type, arg) {
-      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
-        var entry = this.tryEntries[i];
-        if (entry.tryLoc <= this.prev &&
-            hasOwn.call(entry, "finallyLoc") &&
-            this.prev < entry.finallyLoc) {
-          var finallyEntry = entry;
-          break;
-        }
-      }
-
-      if (finallyEntry &&
-          (type === "break" ||
-           type === "continue") &&
-          finallyEntry.tryLoc <= arg &&
-          arg < finallyEntry.finallyLoc) {
-        // Ignore the finally entry if control is not jumping to a
-        // location outside the try/catch block.
-        finallyEntry = null;
-      }
-
-      var record = finallyEntry ? finallyEntry.completion : {};
-      record.type = type;
-      record.arg = arg;
-
-      if (finallyEntry) {
-        this.next = finallyEntry.finallyLoc;
-      } else {
-        this.complete(record);
-      }
-
-      return ContinueSentinel;
-    },
-
-    complete: function(record, afterLoc) {
-      if (record.type === "throw") {
-        throw record.arg;
-      }
-
-      if (record.type === "break" ||
-          record.type === "continue") {
-        this.next = record.arg;
-      } else if (record.type === "return") {
-        this.rval = record.arg;
-        this.next = "end";
-      } else if (record.type === "normal" && afterLoc) {
-        this.next = afterLoc;
-      }
-
-      return ContinueSentinel;
-    },
-
-    finish: function(finallyLoc) {
-      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
-        var entry = this.tryEntries[i];
-        if (entry.finallyLoc === finallyLoc) {
-          return this.complete(entry.completion, entry.afterLoc);
-        }
-      }
-    },
-
-    "catch": function(tryLoc) {
-      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
-        var entry = this.tryEntries[i];
-        if (entry.tryLoc === tryLoc) {
-          var record = entry.completion;
-          if (record.type === "throw") {
-            var thrown = record.arg;
-            resetTryEntry(entry);
-          }
-          return thrown;
-        }
-      }
-
-      // The context.catch method must only be called with a location
-      // argument that corresponds to a known catch block.
-      throw new Error("illegal catch attempt");
-    },
-
-    delegateYield: function(iterable, resultName, nextLoc) {
-      this.delegate = {
-        iterator: values(iterable),
-        resultName: resultName,
-        nextLoc: nextLoc
-      };
-
-      return ContinueSentinel;
-    }
-  };
-})(
-  // Among the various tricks for obtaining a reference to the global
-  // object, this seems to be the most reliable technique that does not
-  // use indirect eval (which violates Content Security Policy).
-  typeof global === "object" ? global :
-  typeof window === "object" ? window : this
-);
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],77:[function(require,module,exports){
-module.exports = require("./lib/babel/polyfill");
-
-},{"./lib/babel/polyfill":6}],78:[function(require,module,exports){
-module.exports = require("babel-core/polyfill");
-
-},{"babel-core/polyfill":77}],79:[function(require,module,exports){
+/**
+ * @class Autolinker
+ * @extends Object
+ *
+ * Utility class used to process a given string of text, and wrap the matches in
+ * the appropriate anchor (&lt;a&gt;) tags to turn them into links.
+ *
+ * Any of the configuration options may be provided in an Object (map) provided
+ * to the Autolinker constructor, which will configure how the {@link #link link()}
+ * method will process the links.
+ *
+ * For example:
+ *
+ *     var autolinker = new Autolinker( {
+ *         newWindow : false,
+ *         truncate  : 30
+ *     } );
+ *
+ *     var html = autolinker.link( "Joe went to www.yahoo.com" );
+ *     // produces: 'Joe went to <a href="http://www.yahoo.com">yahoo.com</a>'
+ *
+ *
+ * The {@link #static-link static link()} method may also be used to inline options into a single call, which may
+ * be more convenient for one-off uses. For example:
+ *
+ *     var html = Autolinker.link( "Joe went to www.yahoo.com", {
+ *         newWindow : false,
+ *         truncate  : 30
+ *     } );
+ *     // produces: 'Joe went to <a href="http://www.yahoo.com">yahoo.com</a>'
+ *
+ *
+ * ## Custom Replacements of Links
+ *
+ * If the configuration options do not provide enough flexibility, a {@link #replaceFn}
+ * may be provided to fully customize the output of Autolinker. This function is
+ * called once for each URL/Email/Phone#/Twitter Handle/Hashtag match that is
+ * encountered.
+ *
+ * For example:
+ *
+ *     var input = "...";  // string with URLs, Email Addresses, Phone #s, Twitter Handles, and Hashtags
+ *
+ *     var linkedText = Autolinker.link( input, {
+ *         replaceFn : function( autolinker, match ) {
+ *             console.log( "href = ", match.getAnchorHref() );
+ *             console.log( "text = ", match.getAnchorText() );
+ *
+ *             switch( match.getType() ) {
+ *                 case 'url' :
+ *                     console.log( "url: ", match.getUrl() );
+ *
+ *                     if( match.getUrl().indexOf( 'mysite.com' ) === -1 ) {
+ *                         var tag = autolinker.getTagBuilder().build( match );  // returns an `Autolinker.HtmlTag` instance, which provides mutator methods for easy changes
+ *                         tag.setAttr( 'rel', 'nofollow' );
+ *                         tag.addClass( 'external-link' );
+ *
+ *                         return tag;
+ *
+ *                     } else {
+ *                         return true;  // let Autolinker perform its normal anchor tag replacement
+ *                     }
+ *
+ *                 case 'email' :
+ *                     var email = match.getEmail();
+ *                     console.log( "email: ", email );
+ *
+ *                     if( email === "my@own.address" ) {
+ *                         return false;  // don't auto-link this particular email address; leave as-is
+ *                     } else {
+ *                         return;  // no return value will have Autolinker perform its normal anchor tag replacement (same as returning `true`)
+ *                     }
+ *
+ *                 case 'phone' :
+ *                     var phoneNumber = match.getPhoneNumber();
+ *                     console.log( phoneNumber );
+ *
+ *                     return '<a href="http://newplace.to.link.phone.numbers.to/">' + phoneNumber + '</a>';
+ *
+ *                 case 'twitter' :
+ *                     var twitterHandle = match.getTwitterHandle();
+ *                     console.log( twitterHandle );
+ *
+ *                     return '<a href="http://newplace.to.link.twitter.handles.to/">' + twitterHandle + '</a>';
+ *
+ *                 case 'hashtag' :
+ *                     var hashtag = match.getHashtag();
+ *                     console.log( hashtag );
+ *
+ *                     return '<a href="http://newplace.to.link.hashtag.handles.to/">' + hashtag + '</a>';
+ *             }
+ *         }
+ *     } );
+ *
+ *
+ * The function may return the following values:
+ *
+ * - `true` (Boolean): Allow Autolinker to replace the match as it normally would.
+ * - `false` (Boolean): Do not replace the current match at all - leave as-is.
+ * - Any String: If a string is returned from the function, the string will be used directly as the replacement HTML for
+ *   the match.
+ * - An {@link Autolinker.HtmlTag} instance, which can be used to build/modify an HTML tag before writing out its HTML text.
+ *
+ * @constructor
+ * @param {Object} [config] The configuration options for the Autolinker instance, specified in an Object (map).
+ */
+var Autolinker = function( cfg ) {
+	Autolinker.Util.assign( this, cfg );  // assign the properties of `cfg` onto the Autolinker instance. Prototype properties will be used for missing configs.
+
+	// Validate the value of the `hashtag` cfg.
+	var hashtag = this.hashtag;
+	if( hashtag !== false && hashtag !== 'twitter' && hashtag !== 'facebook' ) {
+		throw new Error( "invalid `hashtag` cfg - see docs" );
+	}
+};
+
+Autolinker.prototype = {
+	constructor : Autolinker,  // fix constructor property
+
+	/**
+	 * @cfg {Boolean} urls
+	 *
+	 * `true` if miscellaneous URLs should be automatically linked, `false` if they should not be.
+	 */
+	urls : true,
+
+	/**
+	 * @cfg {Boolean} email
+	 *
+	 * `true` if email addresses should be automatically linked, `false` if they should not be.
+	 */
+	email : true,
+
+	/**
+	 * @cfg {Boolean} twitter
+	 *
+	 * `true` if Twitter handles ("@example") should be automatically linked, `false` if they should not be.
+	 */
+	twitter : true,
+
+	/**
+	 * @cfg {Boolean} phone
+	 *
+	 * `true` if Phone numbers ("(555)555-5555") should be automatically linked, `false` if they should not be.
+	 */
+	phone: true,
+
+	/**
+	 * @cfg {Boolean/String} hashtag
+	 *
+	 * A string for the service name to have hashtags (ex: "#myHashtag")
+	 * auto-linked to. The currently-supported values are:
+	 *
+	 * - 'twitter'
+	 * - 'facebook'
+	 *
+	 * Pass `false` to skip auto-linking of hashtags.
+	 */
+	hashtag : false,
+
+	/**
+	 * @cfg {Boolean} newWindow
+	 *
+	 * `true` if the links should open in a new window, `false` otherwise.
+	 */
+	newWindow : true,
+
+	/**
+	 * @cfg {Boolean} stripPrefix
+	 *
+	 * `true` if 'http://' or 'https://' and/or the 'www.' should be stripped
+	 * from the beginning of URL links' text, `false` otherwise.
+	 */
+	stripPrefix : true,
+
+	/**
+	 * @cfg {Number} truncate
+	 *
+	 * A number for how many characters long matched text should be truncated to inside the text of
+	 * a link. If the matched text is over this number of characters, it will be truncated to this length by
+	 * adding a two period ellipsis ('..') to the end of the string.
+	 *
+	 * For example: A url like 'http://www.yahoo.com/some/long/path/to/a/file' truncated to 25 characters might look
+	 * something like this: 'yahoo.com/some/long/pat..'
+	 */
+	truncate : undefined,
+
+	/**
+	 * @cfg {String} className
+	 *
+	 * A CSS class name to add to the generated links. This class will be added to all links, as well as this class
+	 * plus match suffixes for styling url/email/phone/twitter/hashtag links differently.
+	 *
+	 * For example, if this config is provided as "myLink", then:
+	 *
+	 * - URL links will have the CSS classes: "myLink myLink-url"
+	 * - Email links will have the CSS classes: "myLink myLink-email", and
+	 * - Twitter links will have the CSS classes: "myLink myLink-twitter"
+	 * - Phone links will have the CSS classes: "myLink myLink-phone"
+	 * - Hashtag links will have the CSS classes: "myLink myLink-hashtag"
+	 */
+	className : "",
+
+	/**
+	 * @cfg {Function} replaceFn
+	 *
+	 * A function to individually process each match found in the input string.
+	 *
+	 * See the class's description for usage.
+	 *
+	 * This function is called with the following parameters:
+	 *
+	 * @cfg {Autolinker} replaceFn.autolinker The Autolinker instance, which may be used to retrieve child objects from (such
+	 *   as the instance's {@link #getTagBuilder tag builder}).
+	 * @cfg {Autolinker.match.Match} replaceFn.match The Match instance which can be used to retrieve information about the
+	 *   match that the `replaceFn` is currently processing. See {@link Autolinker.match.Match} subclasses for details.
+	 */
+
+
+	/**
+	 * @private
+	 * @property {Autolinker.htmlParser.HtmlParser} htmlParser
+	 *
+	 * The HtmlParser instance used to skip over HTML tags, while finding text nodes to process. This is lazily instantiated
+	 * in the {@link #getHtmlParser} method.
+	 */
+	htmlParser : undefined,
+
+	/**
+	 * @private
+	 * @property {Autolinker.matchParser.MatchParser} matchParser
+	 *
+	 * The MatchParser instance used to find matches in the text nodes of an input string passed to
+	 * {@link #link}. This is lazily instantiated in the {@link #getMatchParser} method.
+	 */
+	matchParser : undefined,
+
+	/**
+	 * @private
+	 * @property {Autolinker.AnchorTagBuilder} tagBuilder
+	 *
+	 * The AnchorTagBuilder instance used to build match replacement anchor tags. Note: this is lazily instantiated
+	 * in the {@link #getTagBuilder} method.
+	 */
+	tagBuilder : undefined,
+
+	/**
+	 * Automatically links URLs, Email addresses, Phone numbers, Twitter
+	 * handles, and Hashtags found in the given chunk of HTML. Does not link
+	 * URLs found within HTML tags.
+	 *
+	 * For instance, if given the text: `You should go to http://www.yahoo.com`,
+	 * then the result will be `You should go to
+	 * &lt;a href="http://www.yahoo.com"&gt;http://www.yahoo.com&lt;/a&gt;`
+	 *
+	 * This method finds the text around any HTML elements in the input
+	 * `textOrHtml`, which will be the text that is processed. Any original HTML
+	 * elements will be left as-is, as well as the text that is already wrapped
+	 * in anchor (&lt;a&gt;) tags.
+	 *
+	 * @param {String} textOrHtml The HTML or text to autolink matches within
+	 *   (depending on if the {@link #urls}, {@link #email}, {@link #phone},
+	 *   {@link #twitter}, and {@link #hashtag} options are enabled).
+	 * @return {String} The HTML, with matches automatically linked.
+	 */
+	link : function( textOrHtml ) {
+		var htmlParser = this.getHtmlParser(),
+		    htmlNodes = htmlParser.parse( textOrHtml ),
+		    anchorTagStackCount = 0,  // used to only process text around anchor tags, and any inner text/html they may have
+		    resultHtml = [];
+
+		for( var i = 0, len = htmlNodes.length; i < len; i++ ) {
+			var node = htmlNodes[ i ],
+			    nodeType = node.getType(),
+			    nodeText = node.getText();
+
+			if( nodeType === 'element' ) {
+				// Process HTML nodes in the input `textOrHtml`
+				if( node.getTagName() === 'a' ) {
+					if( !node.isClosing() ) {  // it's the start <a> tag
+						anchorTagStackCount++;
+					} else {   // it's the end </a> tag
+						anchorTagStackCount = Math.max( anchorTagStackCount - 1, 0 );  // attempt to handle extraneous </a> tags by making sure the stack count never goes below 0
+					}
+				}
+				resultHtml.push( nodeText );  // now add the text of the tag itself verbatim
+
+			} else if( nodeType === 'entity' || nodeType === 'comment' ) {
+				resultHtml.push( nodeText );  // append HTML entity nodes (such as '&nbsp;') or HTML comments (such as '<!-- Comment -->') verbatim
+
+			} else {
+				// Process text nodes in the input `textOrHtml`
+				if( anchorTagStackCount === 0 ) {
+					// If we're not within an <a> tag, process the text node to linkify
+					var linkifiedStr = this.linkifyStr( nodeText );
+					resultHtml.push( linkifiedStr );
+
+				} else {
+					// `text` is within an <a> tag, simply append the text - we do not want to autolink anything
+					// already within an <a>...</a> tag
+					resultHtml.push( nodeText );
+				}
+			}
+		}
+
+		return resultHtml.join( "" );
+	},
+
+	/**
+	 * Process the text that lies in between HTML tags, performing the anchor
+	 * tag replacements for the matches, and returns the string with the
+	 * replacements made.
+	 *
+	 * This method does the actual wrapping of matches with anchor tags.
+	 *
+	 * @private
+	 * @param {String} str The string of text to auto-link.
+	 * @return {String} The text with anchor tags auto-filled.
+	 */
+	linkifyStr : function( str ) {
+		return this.getMatchParser().replace( str, this.createMatchReturnVal, this );
+	},
+
+
+	/**
+	 * Creates the return string value for a given match in the input string,
+	 * for the {@link #linkifyStr} method.
+	 *
+	 * This method handles the {@link #replaceFn}, if one was provided.
+	 *
+	 * @private
+	 * @param {Autolinker.match.Match} match The Match object that represents the match.
+	 * @return {String} The string that the `match` should be replaced with. This is usually the anchor tag string, but
+	 *   may be the `matchStr` itself if the match is not to be replaced.
+	 */
+	createMatchReturnVal : function( match ) {
+		// Handle a custom `replaceFn` being provided
+		var replaceFnResult;
+		if( this.replaceFn ) {
+			replaceFnResult = this.replaceFn.call( this, this, match );  // Autolinker instance is the context, and the first arg
+		}
+
+		if( typeof replaceFnResult === 'string' ) {
+			return replaceFnResult;  // `replaceFn` returned a string, use that
+
+		} else if( replaceFnResult === false ) {
+			return match.getMatchedText();  // no replacement for the match
+
+		} else if( replaceFnResult instanceof Autolinker.HtmlTag ) {
+			return replaceFnResult.toAnchorString();
+
+		} else {  // replaceFnResult === true, or no/unknown return value from function
+			// Perform Autolinker's default anchor tag generation
+			var tagBuilder = this.getTagBuilder(),
+			    anchorTag = tagBuilder.build( match );  // returns an Autolinker.HtmlTag instance
+
+			return anchorTag.toAnchorString();
+		}
+	},
+
+
+	/**
+	 * Lazily instantiates and returns the {@link #htmlParser} instance for this Autolinker instance.
+	 *
+	 * @protected
+	 * @return {Autolinker.htmlParser.HtmlParser}
+	 */
+	getHtmlParser : function() {
+		var htmlParser = this.htmlParser;
+
+		if( !htmlParser ) {
+			htmlParser = this.htmlParser = new Autolinker.htmlParser.HtmlParser();
+		}
+
+		return htmlParser;
+	},
+
+
+	/**
+	 * Lazily instantiates and returns the {@link #matchParser} instance for this Autolinker instance.
+	 *
+	 * @protected
+	 * @return {Autolinker.matchParser.MatchParser}
+	 */
+	getMatchParser : function() {
+		var matchParser = this.matchParser;
+
+		if( !matchParser ) {
+			matchParser = this.matchParser = new Autolinker.matchParser.MatchParser( {
+				urls        : this.urls,
+				email       : this.email,
+				twitter     : this.twitter,
+				phone       : this.phone,
+				hashtag     : this.hashtag,
+				stripPrefix : this.stripPrefix
+			} );
+		}
+
+		return matchParser;
+	},
+
+
+	/**
+	 * Returns the {@link #tagBuilder} instance for this Autolinker instance, lazily instantiating it
+	 * if it does not yet exist.
+	 *
+	 * This method may be used in a {@link #replaceFn} to generate the {@link Autolinker.HtmlTag HtmlTag} instance that
+	 * Autolinker would normally generate, and then allow for modifications before returning it. For example:
+	 *
+	 *     var html = Autolinker.link( "Test google.com", {
+	 *         replaceFn : function( autolinker, match ) {
+	 *             var tag = autolinker.getTagBuilder().build( match );  // returns an {@link Autolinker.HtmlTag} instance
+	 *             tag.setAttr( 'rel', 'nofollow' );
+	 *
+	 *             return tag;
+	 *         }
+	 *     } );
+	 *
+	 *     // generated html:
+	 *     //   Test <a href="http://google.com" target="_blank" rel="nofollow">google.com</a>
+	 *
+	 * @return {Autolinker.AnchorTagBuilder}
+	 */
+	getTagBuilder : function() {
+		var tagBuilder = this.tagBuilder;
+
+		if( !tagBuilder ) {
+			tagBuilder = this.tagBuilder = new Autolinker.AnchorTagBuilder( {
+				newWindow   : this.newWindow,
+				truncate    : this.truncate,
+				className   : this.className
+			} );
+		}
+
+		return tagBuilder;
+	}
+
+};
+
+
+/**
+ * Automatically links URLs, Email addresses, Phone Numbers, Twitter handles,
+ * and Hashtags found in the given chunk of HTML. Does not link URLs found
+ * within HTML tags.
+ *
+ * For instance, if given the text: `You should go to http://www.yahoo.com`,
+ * then the result will be `You should go to &lt;a href="http://www.yahoo.com"&gt;http://www.yahoo.com&lt;/a&gt;`
+ *
+ * Example:
+ *
+ *     var linkedText = Autolinker.link( "Go to google.com", { newWindow: false } );
+ *     // Produces: "Go to <a href="http://google.com">google.com</a>"
+ *
+ * @static
+ * @param {String} textOrHtml The HTML or text to find matches within (depending
+ *   on if the {@link #urls}, {@link #email}, {@link #phone}, {@link #twitter},
+ *   and {@link #hashtag} options are enabled).
+ * @param {Object} [options] Any of the configuration options for the Autolinker
+ *   class, specified in an Object (map). See the class description for an
+ *   example call.
+ * @return {String} The HTML text, with matches automatically linked.
+ */
+Autolinker.link = function( textOrHtml, options ) {
+	var autolinker = new Autolinker( options );
+	return autolinker.link( textOrHtml );
+};
+
+
+// Autolinker Namespaces
+Autolinker.match = {};
+Autolinker.htmlParser = {};
+Autolinker.matchParser = {};
+
+/*global Autolinker */
+/*jshint eqnull:true, boss:true */
+/**
+ * @class Autolinker.Util
+ * @singleton
+ *
+ * A few utility methods for Autolinker.
+ */
+Autolinker.Util = {
+
+	/**
+	 * @property {Function} abstractMethod
+	 *
+	 * A function object which represents an abstract method.
+	 */
+	abstractMethod : function() { throw "abstract"; },
+
+
+	/**
+	 * @private
+	 * @property {RegExp} trimRegex
+	 *
+	 * The regular expression used to trim the leading and trailing whitespace
+	 * from a string.
+	 */
+	trimRegex : /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g,
+
+
+	/**
+	 * Assigns (shallow copies) the properties of `src` onto `dest`.
+	 *
+	 * @param {Object} dest The destination object.
+	 * @param {Object} src The source object.
+	 * @return {Object} The destination object (`dest`)
+	 */
+	assign : function( dest, src ) {
+		for( var prop in src ) {
+			if( src.hasOwnProperty( prop ) ) {
+				dest[ prop ] = src[ prop ];
+			}
+		}
+
+		return dest;
+	},
+
+
+	/**
+	 * Extends `superclass` to create a new subclass, adding the `protoProps` to the new subclass's prototype.
+	 *
+	 * @param {Function} superclass The constructor function for the superclass.
+	 * @param {Object} protoProps The methods/properties to add to the subclass's prototype. This may contain the
+	 *   special property `constructor`, which will be used as the new subclass's constructor function.
+	 * @return {Function} The new subclass function.
+	 */
+	extend : function( superclass, protoProps ) {
+		var superclassProto = superclass.prototype;
+
+		var F = function() {};
+		F.prototype = superclassProto;
+
+		var subclass;
+		if( protoProps.hasOwnProperty( 'constructor' ) ) {
+			subclass = protoProps.constructor;
+		} else {
+			subclass = function() { superclassProto.constructor.apply( this, arguments ); };
+		}
+
+		var subclassProto = subclass.prototype = new F();  // set up prototype chain
+		subclassProto.constructor = subclass;  // fix constructor property
+		subclassProto.superclass = superclassProto;
+
+		delete protoProps.constructor;  // don't re-assign constructor property to the prototype, since a new function may have been created (`subclass`), which is now already there
+		Autolinker.Util.assign( subclassProto, protoProps );
+
+		return subclass;
+	},
+
+
+	/**
+	 * Truncates the `str` at `len - ellipsisChars.length`, and adds the `ellipsisChars` to the
+	 * end of the string (by default, two periods: '..'). If the `str` length does not exceed
+	 * `len`, the string will be returned unchanged.
+	 *
+	 * @param {String} str The string to truncate and add an ellipsis to.
+	 * @param {Number} truncateLen The length to truncate the string at.
+	 * @param {String} [ellipsisChars=..] The ellipsis character(s) to add to the end of `str`
+	 *   when truncated. Defaults to '..'
+	 */
+	ellipsis : function( str, truncateLen, ellipsisChars ) {
+		if( str.length > truncateLen ) {
+			ellipsisChars = ( ellipsisChars == null ) ? '..' : ellipsisChars;
+			str = str.substring( 0, truncateLen - ellipsisChars.length ) + ellipsisChars;
+		}
+		return str;
+	},
+
+
+	/**
+	 * Supports `Array.prototype.indexOf()` functionality for old IE (IE8 and below).
+	 *
+	 * @param {Array} arr The array to find an element of.
+	 * @param {*} element The element to find in the array, and return the index of.
+	 * @return {Number} The index of the `element`, or -1 if it was not found.
+	 */
+	indexOf : function( arr, element ) {
+		if( Array.prototype.indexOf ) {
+			return arr.indexOf( element );
+
+		} else {
+			for( var i = 0, len = arr.length; i < len; i++ ) {
+				if( arr[ i ] === element ) return i;
+			}
+			return -1;
+		}
+	},
+
+
+
+	/**
+	 * Performs the functionality of what modern browsers do when `String.prototype.split()` is called
+	 * with a regular expression that contains capturing parenthesis.
+	 *
+	 * For example:
+	 *
+	 *     // Modern browsers:
+	 *     "a,b,c".split( /(,)/ );  // --> [ 'a', ',', 'b', ',', 'c' ]
+	 *
+	 *     // Old IE (including IE8):
+	 *     "a,b,c".split( /(,)/ );  // --> [ 'a', 'b', 'c' ]
+	 *
+	 * This method emulates the functionality of modern browsers for the old IE case.
+	 *
+	 * @param {String} str The string to split.
+	 * @param {RegExp} splitRegex The regular expression to split the input `str` on. The splitting
+	 *   character(s) will be spliced into the array, as in the "modern browsers" example in the
+	 *   description of this method.
+	 *   Note #1: the supplied regular expression **must** have the 'g' flag specified.
+	 *   Note #2: for simplicity's sake, the regular expression does not need
+	 *   to contain capturing parenthesis - it will be assumed that any match has them.
+	 * @return {String[]} The split array of strings, with the splitting character(s) included.
+	 */
+	splitAndCapture : function( str, splitRegex ) {
+		if( !splitRegex.global ) throw new Error( "`splitRegex` must have the 'g' flag set" );
+
+		var result = [],
+		    lastIdx = 0,
+		    match;
+
+		while( match = splitRegex.exec( str ) ) {
+			result.push( str.substring( lastIdx, match.index ) );
+			result.push( match[ 0 ] );  // push the splitting char(s)
+
+			lastIdx = match.index + match[ 0 ].length;
+		}
+		result.push( str.substring( lastIdx ) );
+
+		return result;
+	},
+
+
+	/**
+	 * Trims the leading and trailing whitespace from a string.
+	 *
+	 * @param {String} str The string to trim.
+	 * @return {String}
+	 */
+	trim : function( str ) {
+		return str.replace( this.trimRegex, '' );
+	}
+
+};
+/*global Autolinker */
+/*jshint boss:true */
+/**
+ * @class Autolinker.HtmlTag
+ * @extends Object
+ *
+ * Represents an HTML tag, which can be used to easily build/modify HTML tags programmatically.
+ *
+ * Autolinker uses this abstraction to create HTML tags, and then write them out as strings. You may also use
+ * this class in your code, especially within a {@link Autolinker#replaceFn replaceFn}.
+ *
+ * ## Examples
+ *
+ * Example instantiation:
+ *
+ *     var tag = new Autolinker.HtmlTag( {
+ *         tagName : 'a',
+ *         attrs   : { 'href': 'http://google.com', 'class': 'external-link' },
+ *         innerHtml : 'Google'
+ *     } );
+ *
+ *     tag.toAnchorString();  // <a href="http://google.com" class="external-link">Google</a>
+ *
+ *     // Individual accessor methods
+ *     tag.getTagName();                 // 'a'
+ *     tag.getAttr( 'href' );            // 'http://google.com'
+ *     tag.hasClass( 'external-link' );  // true
+ *
+ *
+ * Using mutator methods (which may be used in combination with instantiation config properties):
+ *
+ *     var tag = new Autolinker.HtmlTag();
+ *     tag.setTagName( 'a' );
+ *     tag.setAttr( 'href', 'http://google.com' );
+ *     tag.addClass( 'external-link' );
+ *     tag.setInnerHtml( 'Google' );
+ *
+ *     tag.getTagName();                 // 'a'
+ *     tag.getAttr( 'href' );            // 'http://google.com'
+ *     tag.hasClass( 'external-link' );  // true
+ *
+ *     tag.toAnchorString();  // <a href="http://google.com" class="external-link">Google</a>
+ *
+ *
+ * ## Example use within a {@link Autolinker#replaceFn replaceFn}
+ *
+ *     var html = Autolinker.link( "Test google.com", {
+ *         replaceFn : function( autolinker, match ) {
+ *             var tag = autolinker.getTagBuilder().build( match );  // returns an {@link Autolinker.HtmlTag} instance, configured with the Match's href and anchor text
+ *             tag.setAttr( 'rel', 'nofollow' );
+ *
+ *             return tag;
+ *         }
+ *     } );
+ *
+ *     // generated html:
+ *     //   Test <a href="http://google.com" target="_blank" rel="nofollow">google.com</a>
+ *
+ *
+ * ## Example use with a new tag for the replacement
+ *
+ *     var html = Autolinker.link( "Test google.com", {
+ *         replaceFn : function( autolinker, match ) {
+ *             var tag = new Autolinker.HtmlTag( {
+ *                 tagName : 'button',
+ *                 attrs   : { 'title': 'Load URL: ' + match.getAnchorHref() },
+ *                 innerHtml : 'Load URL: ' + match.getAnchorText()
+ *             } );
+ *
+ *             return tag;
+ *         }
+ *     } );
+ *
+ *     // generated html:
+ *     //   Test <button title="Load URL: http://google.com">Load URL: google.com</button>
+ */
+Autolinker.HtmlTag = Autolinker.Util.extend( Object, {
+
+	/**
+	 * @cfg {String} tagName
+	 *
+	 * The tag name. Ex: 'a', 'button', etc.
+	 *
+	 * Not required at instantiation time, but should be set using {@link #setTagName} before {@link #toAnchorString}
+	 * is executed.
+	 */
+
+	/**
+	 * @cfg {Object.<String, String>} attrs
+	 *
+	 * An key/value Object (map) of attributes to create the tag with. The keys are the attribute names, and the
+	 * values are the attribute values.
+	 */
+
+	/**
+	 * @cfg {String} innerHtml
+	 *
+	 * The inner HTML for the tag.
+	 *
+	 * Note the camel case name on `innerHtml`. Acronyms are camelCased in this utility (such as not to run into the acronym
+	 * naming inconsistency that the DOM developers created with `XMLHttpRequest`). You may alternatively use {@link #innerHTML}
+	 * if you prefer, but this one is recommended.
+	 */
+
+	/**
+	 * @cfg {String} innerHTML
+	 *
+	 * Alias of {@link #innerHtml}, accepted for consistency with the browser DOM api, but prefer the camelCased version
+	 * for acronym names.
+	 */
+
+
+	/**
+	 * @protected
+	 * @property {RegExp} whitespaceRegex
+	 *
+	 * Regular expression used to match whitespace in a string of CSS classes.
+	 */
+	whitespaceRegex : /\s+/,
+
+
+	/**
+	 * @constructor
+	 * @param {Object} [cfg] The configuration properties for this class, in an Object (map)
+	 */
+	constructor : function( cfg ) {
+		Autolinker.Util.assign( this, cfg );
+
+		this.innerHtml = this.innerHtml || this.innerHTML;  // accept either the camelCased form or the fully capitalized acronym
+	},
+
+
+	/**
+	 * Sets the tag name that will be used to generate the tag with.
+	 *
+	 * @param {String} tagName
+	 * @return {Autolinker.HtmlTag} This HtmlTag instance, so that method calls may be chained.
+	 */
+	setTagName : function( tagName ) {
+		this.tagName = tagName;
+		return this;
+	},
+
+
+	/**
+	 * Retrieves the tag name.
+	 *
+	 * @return {String}
+	 */
+	getTagName : function() {
+		return this.tagName || "";
+	},
+
+
+	/**
+	 * Sets an attribute on the HtmlTag.
+	 *
+	 * @param {String} attrName The attribute name to set.
+	 * @param {String} attrValue The attribute value to set.
+	 * @return {Autolinker.HtmlTag} This HtmlTag instance, so that method calls may be chained.
+	 */
+	setAttr : function( attrName, attrValue ) {
+		var tagAttrs = this.getAttrs();
+		tagAttrs[ attrName ] = attrValue;
+
+		return this;
+	},
+
+
+	/**
+	 * Retrieves an attribute from the HtmlTag. If the attribute does not exist, returns `undefined`.
+	 *
+	 * @param {String} name The attribute name to retrieve.
+	 * @return {String} The attribute's value, or `undefined` if it does not exist on the HtmlTag.
+	 */
+	getAttr : function( attrName ) {
+		return this.getAttrs()[ attrName ];
+	},
+
+
+	/**
+	 * Sets one or more attributes on the HtmlTag.
+	 *
+	 * @param {Object.<String, String>} attrs A key/value Object (map) of the attributes to set.
+	 * @return {Autolinker.HtmlTag} This HtmlTag instance, so that method calls may be chained.
+	 */
+	setAttrs : function( attrs ) {
+		var tagAttrs = this.getAttrs();
+		Autolinker.Util.assign( tagAttrs, attrs );
+
+		return this;
+	},
+
+
+	/**
+	 * Retrieves the attributes Object (map) for the HtmlTag.
+	 *
+	 * @return {Object.<String, String>} A key/value object of the attributes for the HtmlTag.
+	 */
+	getAttrs : function() {
+		return this.attrs || ( this.attrs = {} );
+	},
+
+
+	/**
+	 * Sets the provided `cssClass`, overwriting any current CSS classes on the HtmlTag.
+	 *
+	 * @param {String} cssClass One or more space-separated CSS classes to set (overwrite).
+	 * @return {Autolinker.HtmlTag} This HtmlTag instance, so that method calls may be chained.
+	 */
+	setClass : function( cssClass ) {
+		return this.setAttr( 'class', cssClass );
+	},
+
+
+	/**
+	 * Convenience method to add one or more CSS classes to the HtmlTag. Will not add duplicate CSS classes.
+	 *
+	 * @param {String} cssClass One or more space-separated CSS classes to add.
+	 * @return {Autolinker.HtmlTag} This HtmlTag instance, so that method calls may be chained.
+	 */
+	addClass : function( cssClass ) {
+		var classAttr = this.getClass(),
+		    whitespaceRegex = this.whitespaceRegex,
+		    indexOf = Autolinker.Util.indexOf,  // to support IE8 and below
+		    classes = ( !classAttr ) ? [] : classAttr.split( whitespaceRegex ),
+		    newClasses = cssClass.split( whitespaceRegex ),
+		    newClass;
+
+		while( newClass = newClasses.shift() ) {
+			if( indexOf( classes, newClass ) === -1 ) {
+				classes.push( newClass );
+			}
+		}
+
+		this.getAttrs()[ 'class' ] = classes.join( " " );
+		return this;
+	},
+
+
+	/**
+	 * Convenience method to remove one or more CSS classes from the HtmlTag.
+	 *
+	 * @param {String} cssClass One or more space-separated CSS classes to remove.
+	 * @return {Autolinker.HtmlTag} This HtmlTag instance, so that method calls may be chained.
+	 */
+	removeClass : function( cssClass ) {
+		var classAttr = this.getClass(),
+		    whitespaceRegex = this.whitespaceRegex,
+		    indexOf = Autolinker.Util.indexOf,  // to support IE8 and below
+		    classes = ( !classAttr ) ? [] : classAttr.split( whitespaceRegex ),
+		    removeClasses = cssClass.split( whitespaceRegex ),
+		    removeClass;
+
+		while( classes.length && ( removeClass = removeClasses.shift() ) ) {
+			var idx = indexOf( classes, removeClass );
+			if( idx !== -1 ) {
+				classes.splice( idx, 1 );
+			}
+		}
+
+		this.getAttrs()[ 'class' ] = classes.join( " " );
+		return this;
+	},
+
+
+	/**
+	 * Convenience method to retrieve the CSS class(es) for the HtmlTag, which will each be separated by spaces when
+	 * there are multiple.
+	 *
+	 * @return {String}
+	 */
+	getClass : function() {
+		return this.getAttrs()[ 'class' ] || "";
+	},
+
+
+	/**
+	 * Convenience method to check if the tag has a CSS class or not.
+	 *
+	 * @param {String} cssClass The CSS class to check for.
+	 * @return {Boolean} `true` if the HtmlTag has the CSS class, `false` otherwise.
+	 */
+	hasClass : function( cssClass ) {
+		return ( ' ' + this.getClass() + ' ' ).indexOf( ' ' + cssClass + ' ' ) !== -1;
+	},
+
+
+	/**
+	 * Sets the inner HTML for the tag.
+	 *
+	 * @param {String} html The inner HTML to set.
+	 * @return {Autolinker.HtmlTag} This HtmlTag instance, so that method calls may be chained.
+	 */
+	setInnerHtml : function( html ) {
+		this.innerHtml = html;
+
+		return this;
+	},
+
+
+	/**
+	 * Retrieves the inner HTML for the tag.
+	 *
+	 * @return {String}
+	 */
+	getInnerHtml : function() {
+		return this.innerHtml || "";
+	},
+
+
+	/**
+	 * Override of superclass method used to generate the HTML string for the tag.
+	 *
+	 * @return {String}
+	 */
+	toAnchorString : function() {
+		var tagName = this.getTagName(),
+		    attrsStr = this.buildAttrsStr();
+
+		attrsStr = ( attrsStr ) ? ' ' + attrsStr : '';  // prepend a space if there are actually attributes
+
+		return [ '<', tagName, attrsStr, '>', this.getInnerHtml(), '</', tagName, '>' ].join( "" );
+	},
+
+
+	/**
+	 * Support method for {@link #toAnchorString}, returns the string space-separated key="value" pairs, used to populate
+	 * the stringified HtmlTag.
+	 *
+	 * @protected
+	 * @return {String} Example return: `attr1="value1" attr2="value2"`
+	 */
+	buildAttrsStr : function() {
+		if( !this.attrs ) return "";  // no `attrs` Object (map) has been set, return empty string
+
+		var attrs = this.getAttrs(),
+		    attrsArr = [];
+
+		for( var prop in attrs ) {
+			if( attrs.hasOwnProperty( prop ) ) {
+				attrsArr.push( prop + '="' + attrs[ prop ] + '"' );
+			}
+		}
+		return attrsArr.join( " " );
+	}
+
+} );
+
+/*global Autolinker */
+/*jshint sub:true */
+/**
+ * @protected
+ * @class Autolinker.AnchorTagBuilder
+ * @extends Object
+ *
+ * Builds anchor (&lt;a&gt;) tags for the Autolinker utility when a match is found.
+ *
+ * Normally this class is instantiated, configured, and used internally by an {@link Autolinker} instance, but may
+ * actually be retrieved in a {@link Autolinker#replaceFn replaceFn} to create {@link Autolinker.HtmlTag HtmlTag} instances
+ * which may be modified before returning from the {@link Autolinker#replaceFn replaceFn}. For example:
+ *
+ *     var html = Autolinker.link( "Test google.com", {
+ *         replaceFn : function( autolinker, match ) {
+ *             var tag = autolinker.getTagBuilder().build( match );  // returns an {@link Autolinker.HtmlTag} instance
+ *             tag.setAttr( 'rel', 'nofollow' );
+ *
+ *             return tag;
+ *         }
+ *     } );
+ *
+ *     // generated html:
+ *     //   Test <a href="http://google.com" target="_blank" rel="nofollow">google.com</a>
+ */
+Autolinker.AnchorTagBuilder = Autolinker.Util.extend( Object, {
+
+	/**
+	 * @cfg {Boolean} newWindow
+	 * @inheritdoc Autolinker#newWindow
+	 */
+
+	/**
+	 * @cfg {Number} truncate
+	 * @inheritdoc Autolinker#truncate
+	 */
+
+	/**
+	 * @cfg {String} className
+	 * @inheritdoc Autolinker#className
+	 */
+
+
+	/**
+	 * @constructor
+	 * @param {Object} [cfg] The configuration options for the AnchorTagBuilder instance, specified in an Object (map).
+	 */
+	constructor : function( cfg ) {
+		Autolinker.Util.assign( this, cfg );
+	},
+
+
+	/**
+	 * Generates the actual anchor (&lt;a&gt;) tag to use in place of the
+	 * matched text, via its `match` object.
+	 *
+	 * @param {Autolinker.match.Match} match The Match instance to generate an
+	 *   anchor tag from.
+	 * @return {Autolinker.HtmlTag} The HtmlTag instance for the anchor tag.
+	 */
+	build : function( match ) {
+		var tag = new Autolinker.HtmlTag( {
+			tagName   : 'a',
+			attrs     : this.createAttrs( match.getType(), match.getAnchorHref() ),
+			innerHtml : this.processAnchorText( match.getAnchorText() )
+		} );
+
+		return tag;
+	},
+
+
+	/**
+	 * Creates the Object (map) of the HTML attributes for the anchor (&lt;a&gt;)
+	 *   tag being generated.
+	 *
+	 * @protected
+	 * @param {"url"/"email"/"phone"/"twitter"/"hashtag"} matchType The type of
+	 *   match that an anchor tag is being generated for.
+	 * @param {String} href The href for the anchor tag.
+	 * @return {Object} A key/value Object (map) of the anchor tag's attributes.
+	 */
+	createAttrs : function( matchType, anchorHref ) {
+		var attrs = {
+			'href' : anchorHref  // we'll always have the `href` attribute
+		};
+
+		var cssClass = this.createCssClass( matchType );
+		if( cssClass ) {
+			attrs[ 'class' ] = cssClass;
+		}
+		if( this.newWindow ) {
+			attrs[ 'target' ] = "_blank";
+		}
+
+		return attrs;
+	},
+
+
+	/**
+	 * Creates the CSS class that will be used for a given anchor tag, based on
+	 * the `matchType` and the {@link #className} config.
+	 *
+	 * @private
+	 * @param {"url"/"email"/"phone"/"twitter"/"hashtag"} matchType The type of
+	 *   match that an anchor tag is being generated for.
+	 * @return {String} The CSS class string for the link. Example return:
+	 *   "myLink myLink-url". If no {@link #className} was configured, returns
+	 *   an empty string.
+	 */
+	createCssClass : function( matchType ) {
+		var className = this.className;
+
+		if( !className )
+			return "";
+		else
+			return className + " " + className + "-" + matchType;  // ex: "myLink myLink-url", "myLink myLink-email", "myLink myLink-phone", "myLink myLink-twitter", or "myLink myLink-hashtag"
+	},
+
+
+	/**
+	 * Processes the `anchorText` by truncating the text according to the
+	 * {@link #truncate} config.
+	 *
+	 * @private
+	 * @param {String} anchorText The anchor tag's text (i.e. what will be
+	 *   displayed).
+	 * @return {String} The processed `anchorText`.
+	 */
+	processAnchorText : function( anchorText ) {
+		anchorText = this.doTruncate( anchorText );
+
+		return anchorText;
+	},
+
+
+	/**
+	 * Performs the truncation of the `anchorText`, if the `anchorText` is
+	 * longer than the {@link #truncate} option. Truncates the text to 2
+	 * characters fewer than the {@link #truncate} option, and adds ".." to the
+	 * end.
+	 *
+	 * @private
+	 * @param {String} text The anchor tag's text (i.e. what will be displayed).
+	 * @return {String} The truncated anchor text.
+	 */
+	doTruncate : function( anchorText ) {
+		return Autolinker.Util.ellipsis( anchorText, this.truncate || Number.POSITIVE_INFINITY );
+	}
+
+} );
+/*global Autolinker */
+/**
+ * @private
+ * @class Autolinker.htmlParser.HtmlParser
+ * @extends Object
+ *
+ * An HTML parser implementation which simply walks an HTML string and returns an array of
+ * {@link Autolinker.htmlParser.HtmlNode HtmlNodes} that represent the basic HTML structure of the input string.
+ *
+ * Autolinker uses this to only link URLs/emails/Twitter handles within text nodes, effectively ignoring / "walking
+ * around" HTML tags.
+ */
+Autolinker.htmlParser.HtmlParser = Autolinker.Util.extend( Object, {
+
+	/**
+	 * @private
+	 * @property {RegExp} htmlRegex
+	 *
+	 * The regular expression used to pull out HTML tags from a string. Handles namespaced HTML tags and
+	 * attribute names, as specified by http://www.w3.org/TR/html-markup/syntax.html.
+	 *
+	 * Capturing groups:
+	 *
+	 * 1. The "!DOCTYPE" tag name, if a tag is a &lt;!DOCTYPE&gt; tag.
+	 * 2. If it is an end tag, this group will have the '/'.
+	 * 3. If it is a comment tag, this group will hold the comment text (i.e.
+	 *    the text inside the `&lt;!--` and `--&gt;`.
+	 * 4. The tag name for all tags (other than the &lt;!DOCTYPE&gt; tag)
+	 */
+	htmlRegex : (function() {
+		var commentTagRegex = /!--([\s\S]+?)--/,
+		    tagNameRegex = /[0-9a-zA-Z][0-9a-zA-Z:]*/,
+		    attrNameRegex = /[^\s\0"'>\/=\x01-\x1F\x7F]+/,   // the unicode range accounts for excluding control chars, and the delete char
+		    attrValueRegex = /(?:"[^"]*?"|'[^']*?'|[^'"=<>`\s]+)/, // double quoted, single quoted, or unquoted attribute values
+		    nameEqualsValueRegex = attrNameRegex.source + '(?:\\s*=\\s*' + attrValueRegex.source + ')?';  // optional '=[value]'
+
+		return new RegExp( [
+			// for <!DOCTYPE> tag. Ex: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">)
+			'(?:',
+				'<(!DOCTYPE)',  // *** Capturing Group 1 - If it's a doctype tag
+
+					// Zero or more attributes following the tag name
+					'(?:',
+						'\\s+',  // one or more whitespace chars before an attribute
+
+						// Either:
+						// A. attr="value", or
+						// B. "value" alone (To cover example doctype tag: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">)
+						'(?:', nameEqualsValueRegex, '|', attrValueRegex.source + ')',
+					')*',
+				'>',
+			')',
+
+			'|',
+
+			// All other HTML tags (i.e. tags that are not <!DOCTYPE>)
+			'(?:',
+				'<(/)?',  // Beginning of a tag or comment. Either '<' for a start tag, or '</' for an end tag.
+				          // *** Capturing Group 2: The slash or an empty string. Slash ('/') for end tag, empty string for start or self-closing tag.
+
+					'(?:',
+						commentTagRegex.source,  // *** Capturing Group 3 - A Comment Tag's Text
+
+						'|',
+
+						'(?:',
+
+							// *** Capturing Group 4 - The tag name
+							'(' + tagNameRegex.source + ')',
+
+							// Zero or more attributes following the tag name
+							'(?:',
+								'\\s+',                // one or more whitespace chars before an attribute
+								nameEqualsValueRegex,  // attr="value" (with optional ="value" part)
+							')*',
+
+							'\\s*/?',  // any trailing spaces and optional '/' before the closing '>'
+
+						')',
+					')',
+				'>',
+			')'
+		].join( "" ), 'gi' );
+	} )(),
+
+	/**
+	 * @private
+	 * @property {RegExp} htmlCharacterEntitiesRegex
+	 *
+	 * The regular expression that matches common HTML character entities.
+	 *
+	 * Ignoring &amp; as it could be part of a query string -- handling it separately.
+	 */
+	htmlCharacterEntitiesRegex: /(&nbsp;|&#160;|&lt;|&#60;|&gt;|&#62;|&quot;|&#34;|&#39;)/gi,
+
+
+	/**
+	 * Parses an HTML string and returns a simple array of {@link Autolinker.htmlParser.HtmlNode HtmlNodes}
+	 * to represent the HTML structure of the input string.
+	 *
+	 * @param {String} html The HTML to parse.
+	 * @return {Autolinker.htmlParser.HtmlNode[]}
+	 */
+	parse : function( html ) {
+		var htmlRegex = this.htmlRegex,
+		    currentResult,
+		    lastIndex = 0,
+		    textAndEntityNodes,
+		    nodes = [];  // will be the result of the method
+
+		while( ( currentResult = htmlRegex.exec( html ) ) !== null ) {
+			var tagText = currentResult[ 0 ],
+			    commentText = currentResult[ 3 ], // if we've matched a comment
+			    tagName = currentResult[ 1 ] || currentResult[ 4 ],  // The <!DOCTYPE> tag (ex: "!DOCTYPE"), or another tag (ex: "a" or "img")
+			    isClosingTag = !!currentResult[ 2 ],
+			    inBetweenTagsText = html.substring( lastIndex, currentResult.index );
+
+			// Push TextNodes and EntityNodes for any text found between tags
+			if( inBetweenTagsText ) {
+				textAndEntityNodes = this.parseTextAndEntityNodes( inBetweenTagsText );
+				nodes.push.apply( nodes, textAndEntityNodes );
+			}
+
+			// Push the CommentNode or ElementNode
+			if( commentText ) {
+				nodes.push( this.createCommentNode( tagText, commentText ) );
+			} else {
+				nodes.push( this.createElementNode( tagText, tagName, isClosingTag ) );
+			}
+
+			lastIndex = currentResult.index + tagText.length;
+		}
+
+		// Process any remaining text after the last HTML element. Will process all of the text if there were no HTML elements.
+		if( lastIndex < html.length ) {
+			var text = html.substring( lastIndex );
+
+			// Push TextNodes and EntityNodes for any text found between tags
+			if( text ) {
+				textAndEntityNodes = this.parseTextAndEntityNodes( text );
+				nodes.push.apply( nodes, textAndEntityNodes );
+			}
+		}
+
+		return nodes;
+	},
+
+
+	/**
+	 * Parses text and HTML entity nodes from a given string. The input string
+	 * should not have any HTML tags (elements) within it.
+	 *
+	 * @private
+	 * @param {String} text The text to parse.
+	 * @return {Autolinker.htmlParser.HtmlNode[]} An array of HtmlNodes to
+	 *   represent the {@link Autolinker.htmlParser.TextNode TextNodes} and
+	 *   {@link Autolinker.htmlParser.EntityNode EntityNodes} found.
+	 */
+	parseTextAndEntityNodes : function( text ) {
+		var nodes = [],
+		    textAndEntityTokens = Autolinker.Util.splitAndCapture( text, this.htmlCharacterEntitiesRegex );  // split at HTML entities, but include the HTML entities in the results array
+
+		// Every even numbered token is a TextNode, and every odd numbered token is an EntityNode
+		// For example: an input `text` of "Test &quot;this&quot; today" would turn into the
+		//   `textAndEntityTokens`: [ 'Test ', '&quot;', 'this', '&quot;', ' today' ]
+		for( var i = 0, len = textAndEntityTokens.length; i < len; i += 2 ) {
+			var textToken = textAndEntityTokens[ i ],
+			    entityToken = textAndEntityTokens[ i + 1 ];
+
+			if( textToken ) nodes.push( this.createTextNode( textToken ) );
+			if( entityToken ) nodes.push( this.createEntityNode( entityToken ) );
+		}
+		return nodes;
+	},
+
+
+	/**
+	 * Factory method to create an {@link Autolinker.htmlParser.CommentNode CommentNode}.
+	 *
+	 * @private
+	 * @param {String} tagText The full text of the tag (comment) that was
+	 *   matched, including its &lt;!-- and --&gt;.
+	 * @param {String} comment The full text of the comment that was matched.
+	 */
+	createCommentNode : function( tagText, commentText ) {
+		return new Autolinker.htmlParser.CommentNode( {
+			text: tagText,
+			comment: Autolinker.Util.trim( commentText )
+		} );
+	},
+
+
+	/**
+	 * Factory method to create an {@link Autolinker.htmlParser.ElementNode ElementNode}.
+	 *
+	 * @private
+	 * @param {String} tagText The full text of the tag (element) that was
+	 *   matched, including its attributes.
+	 * @param {String} tagName The name of the tag. Ex: An &lt;img&gt; tag would
+	 *   be passed to this method as "img".
+	 * @param {Boolean} isClosingTag `true` if it's a closing tag, false
+	 *   otherwise.
+	 * @return {Autolinker.htmlParser.ElementNode}
+	 */
+	createElementNode : function( tagText, tagName, isClosingTag ) {
+		return new Autolinker.htmlParser.ElementNode( {
+			text    : tagText,
+			tagName : tagName.toLowerCase(),
+			closing : isClosingTag
+		} );
+	},
+
+
+	/**
+	 * Factory method to create a {@link Autolinker.htmlParser.EntityNode EntityNode}.
+	 *
+	 * @private
+	 * @param {String} text The text that was matched for the HTML entity (such
+	 *   as '&amp;nbsp;').
+	 * @return {Autolinker.htmlParser.EntityNode}
+	 */
+	createEntityNode : function( text ) {
+		return new Autolinker.htmlParser.EntityNode( { text: text } );
+	},
+
+
+	/**
+	 * Factory method to create a {@link Autolinker.htmlParser.TextNode TextNode}.
+	 *
+	 * @private
+	 * @param {String} text The text that was matched.
+	 * @return {Autolinker.htmlParser.TextNode}
+	 */
+	createTextNode : function( text ) {
+		return new Autolinker.htmlParser.TextNode( { text: text } );
+	}
+
+} );
+/*global Autolinker */
+/**
+ * @abstract
+ * @class Autolinker.htmlParser.HtmlNode
+ * 
+ * Represents an HTML node found in an input string. An HTML node is one of the following:
+ * 
+ * 1. An {@link Autolinker.htmlParser.ElementNode ElementNode}, which represents HTML tags.
+ * 2. A {@link Autolinker.htmlParser.TextNode TextNode}, which represents text outside or within HTML tags.
+ * 3. A {@link Autolinker.htmlParser.EntityNode EntityNode}, which represents one of the known HTML
+ *    entities that Autolinker looks for. This includes common ones such as &amp;quot; and &amp;nbsp;
+ */
+Autolinker.htmlParser.HtmlNode = Autolinker.Util.extend( Object, {
+	
+	/**
+	 * @cfg {String} text (required)
+	 * 
+	 * The original text that was matched for the HtmlNode. 
+	 * 
+	 * - In the case of an {@link Autolinker.htmlParser.ElementNode ElementNode}, this will be the tag's
+	 *   text.
+	 * - In the case of a {@link Autolinker.htmlParser.TextNode TextNode}, this will be the text itself.
+	 * - In the case of a {@link Autolinker.htmlParser.EntityNode EntityNode}, this will be the text of
+	 *   the HTML entity.
+	 */
+	text : "",
+	
+	
+	/**
+	 * @constructor
+	 * @param {Object} cfg The configuration properties for the Match instance, specified in an Object (map).
+	 */
+	constructor : function( cfg ) {
+		Autolinker.Util.assign( this, cfg );
+	},
+
+	
+	/**
+	 * Returns a string name for the type of node that this class represents.
+	 * 
+	 * @abstract
+	 * @return {String}
+	 */
+	getType : Autolinker.Util.abstractMethod,
+	
+	
+	/**
+	 * Retrieves the {@link #text} for the HtmlNode.
+	 * 
+	 * @return {String}
+	 */
+	getText : function() {
+		return this.text;
+	}
+
+} );
+/*global Autolinker */
+/**
+ * @class Autolinker.htmlParser.CommentNode
+ * @extends Autolinker.htmlParser.HtmlNode
+ *
+ * Represents an HTML comment node that has been parsed by the
+ * {@link Autolinker.htmlParser.HtmlParser}.
+ *
+ * See this class's superclass ({@link Autolinker.htmlParser.HtmlNode}) for more
+ * details.
+ */
+Autolinker.htmlParser.CommentNode = Autolinker.Util.extend( Autolinker.htmlParser.HtmlNode, {
+
+	/**
+	 * @cfg {String} comment (required)
+	 *
+	 * The text inside the comment tag. This text is stripped of any leading or
+	 * trailing whitespace.
+	 */
+	comment : '',
+
+
+	/**
+	 * Returns a string name for the type of node that this class represents.
+	 *
+	 * @return {String}
+	 */
+	getType : function() {
+		return 'comment';
+	},
+
+
+	/**
+	 * Returns the comment inside the comment tag.
+	 *
+	 * @return {String}
+	 */
+	getComment : function() {
+		return this.comment;
+	}
+
+} );
+/*global Autolinker */
+/**
+ * @class Autolinker.htmlParser.ElementNode
+ * @extends Autolinker.htmlParser.HtmlNode
+ * 
+ * Represents an HTML element node that has been parsed by the {@link Autolinker.htmlParser.HtmlParser}.
+ * 
+ * See this class's superclass ({@link Autolinker.htmlParser.HtmlNode}) for more details.
+ */
+Autolinker.htmlParser.ElementNode = Autolinker.Util.extend( Autolinker.htmlParser.HtmlNode, {
+	
+	/**
+	 * @cfg {String} tagName (required)
+	 * 
+	 * The name of the tag that was matched.
+	 */
+	tagName : '',
+	
+	/**
+	 * @cfg {Boolean} closing (required)
+	 * 
+	 * `true` if the element (tag) is a closing tag, `false` if its an opening tag.
+	 */
+	closing : false,
+
+	
+	/**
+	 * Returns a string name for the type of node that this class represents.
+	 * 
+	 * @return {String}
+	 */
+	getType : function() {
+		return 'element';
+	},
+	
+
+	/**
+	 * Returns the HTML element's (tag's) name. Ex: for an &lt;img&gt; tag, returns "img".
+	 * 
+	 * @return {String}
+	 */
+	getTagName : function() {
+		return this.tagName;
+	},
+	
+	
+	/**
+	 * Determines if the HTML element (tag) is a closing tag. Ex: &lt;div&gt; returns
+	 * `false`, while &lt;/div&gt; returns `true`.
+	 * 
+	 * @return {Boolean}
+	 */
+	isClosing : function() {
+		return this.closing;
+	}
+	
+} );
+/*global Autolinker */
+/**
+ * @class Autolinker.htmlParser.EntityNode
+ * @extends Autolinker.htmlParser.HtmlNode
+ * 
+ * Represents a known HTML entity node that has been parsed by the {@link Autolinker.htmlParser.HtmlParser}.
+ * Ex: '&amp;nbsp;', or '&amp#160;' (which will be retrievable from the {@link #getText} method.
+ * 
+ * Note that this class will only be returned from the HtmlParser for the set of checked HTML entity nodes 
+ * defined by the {@link Autolinker.htmlParser.HtmlParser#htmlCharacterEntitiesRegex}.
+ * 
+ * See this class's superclass ({@link Autolinker.htmlParser.HtmlNode}) for more details.
+ */
+Autolinker.htmlParser.EntityNode = Autolinker.Util.extend( Autolinker.htmlParser.HtmlNode, {
+	
+	/**
+	 * Returns a string name for the type of node that this class represents.
+	 * 
+	 * @return {String}
+	 */
+	getType : function() {
+		return 'entity';
+	}
+	
+} );
+/*global Autolinker */
+/**
+ * @class Autolinker.htmlParser.TextNode
+ * @extends Autolinker.htmlParser.HtmlNode
+ * 
+ * Represents a text node that has been parsed by the {@link Autolinker.htmlParser.HtmlParser}.
+ * 
+ * See this class's superclass ({@link Autolinker.htmlParser.HtmlNode}) for more details.
+ */
+Autolinker.htmlParser.TextNode = Autolinker.Util.extend( Autolinker.htmlParser.HtmlNode, {
+	
+	/**
+	 * Returns a string name for the type of node that this class represents.
+	 * 
+	 * @return {String}
+	 */
+	getType : function() {
+		return 'text';
+	}
+	
+} );
+/*global Autolinker */
+/**
+ * @private
+ * @class Autolinker.matchParser.MatchParser
+ * @extends Object
+ *
+ * Used by Autolinker to parse potential matches, given an input string of text.
+ *
+ * The MatchParser is fed a non-HTML string in order to search for matches.
+ * Autolinker first uses the {@link Autolinker.htmlParser.HtmlParser} to "walk
+ * around" HTML tags, and then the text around the HTML tags is passed into the
+ * MatchParser in order to find the actual matches.
+ */
+Autolinker.matchParser.MatchParser = Autolinker.Util.extend( Object, {
+
+	/**
+	 * @cfg {Boolean} urls
+	 * @inheritdoc Autolinker#urls
+	 */
+	urls : true,
+
+	/**
+	 * @cfg {Boolean} email
+	 * @inheritdoc Autolinker#email
+	 */
+	email : true,
+
+	/**
+	 * @cfg {Boolean} twitter
+	 * @inheritdoc Autolinker#twitter
+	 */
+	twitter : true,
+
+	/**
+	 * @cfg {Boolean} phone
+	 * @inheritdoc Autolinker#phone
+	 */
+	phone: true,
+
+	/**
+	 * @cfg {Boolean/String} hashtag
+	 * @inheritdoc Autolinker#hashtag
+	 */
+	hashtag : false,
+
+	/**
+	 * @cfg {Boolean} stripPrefix
+	 * @inheritdoc Autolinker#stripPrefix
+	 */
+	stripPrefix : true,
+
+
+	/**
+	 * @private
+	 * @property {RegExp} matcherRegex
+	 *
+	 * The regular expression that matches URLs, email addresses, phone #s,
+	 * Twitter handles, and Hashtags.
+	 *
+	 * This regular expression has the following capturing groups:
+	 *
+	 * 1.  Group that is used to determine if there is a Twitter handle match
+	 *     (i.e. \@someTwitterUser). Simply check for its existence to determine
+	 *     if there is a Twitter handle match. The next couple of capturing
+	 *     groups give information about the Twitter handle match.
+	 * 2.  The whitespace character before the \@sign in a Twitter handle. This
+	 *     is needed because there are no lookbehinds in JS regular expressions,
+	 *     and can be used to reconstruct the original string in a replace().
+	 * 3.  The Twitter handle itself in a Twitter match. If the match is
+	 *     '@someTwitterUser', the handle is 'someTwitterUser'.
+	 * 4.  Group that matches an email address. Used to determine if the match
+	 *     is an email address, as well as holding the full address. Ex:
+	 *     'me@my.com'
+	 * 5.  Group that matches a URL in the input text. Ex: 'http://google.com',
+	 *     'www.google.com', or just 'google.com'. This also includes a path,
+	 *     url parameters, or hash anchors. Ex: google.com/path/to/file?q1=1&q2=2#myAnchor
+	 * 6.  Group that matches a protocol URL (i.e. 'http://google.com'). This is
+	 *     used to match protocol URLs with just a single word, like 'http://localhost',
+	 *     where we won't double check that the domain name has at least one '.'
+	 *     in it.
+	 * 7.  A protocol-relative ('//') match for the case of a 'www.' prefixed
+	 *     URL. Will be an empty string if it is not a protocol-relative match.
+	 *     We need to know the character before the '//' in order to determine
+	 *     if it is a valid match or the // was in a string we don't want to
+	 *     auto-link.
+	 * 8.  A protocol-relative ('//') match for the case of a known TLD prefixed
+	 *     URL. Will be an empty string if it is not a protocol-relative match.
+	 *     See #6 for more info.
+	 * 9.  Group that is used to determine if there is a phone number match. The
+	 *     next 3 groups give segments of the phone number.
+	 * 10. Group that is used to determine if there is a Hashtag match
+	 *     (i.e. \#someHashtag). Simply check for its existence to determine if
+	 *     there is a Hashtag match. The next couple of capturing groups give
+	 *     information about the Hashtag match.
+	 * 11. The whitespace character before the #sign in a Hashtag handle. This
+	 *     is needed because there are no look-behinds in JS regular
+	 *     expressions, and can be used to reconstruct the original string in a
+	 *     replace().
+	 * 12. The Hashtag itself in a Hashtag match. If the match is
+	 *     '#someHashtag', the hashtag is 'someHashtag'.
+	 */
+	matcherRegex : (function() {
+		var twitterRegex = /(^|[^\w])@(\w{1,15})/,              // For matching a twitter handle. Ex: @gregory_jacobs
+
+		    hashtagRegex = /(^|[^\w])#(\w{1,15})/,              // For matching a Hashtag. Ex: #games
+
+		    emailRegex = /(?:[\-;:&=\+\$,\w\.]+@)/,             // something@ for email addresses (a.k.a. local-part)
+		    phoneRegex = /(?:\+?\d{1,3}[-\s.])?\(?\d{3}\)?[-\s.]?\d{3}[-\s.]\d{4}/,  // ex: (123) 456-7890, 123 456 7890, 123-456-7890, etc.
+		    protocolRegex = /(?:[A-Za-z][-.+A-Za-z0-9]+:(?![A-Za-z][-.+A-Za-z0-9]+:\/\/)(?!\d+\/?)(?:\/\/)?)/,  // match protocol, allow in format "http://" or "mailto:". However, do not match the first part of something like 'link:http://www.google.com' (i.e. don't match "link:"). Also, make sure we don't interpret 'google.com:8000' as if 'google.com' was a protocol here (i.e. ignore a trailing port number in this regex)
+		    wwwRegex = /(?:www\.)/,                             // starting with 'www.'
+		    domainNameRegex = /[A-Za-z0-9\.\-]*[A-Za-z0-9\-]/,  // anything looking at all like a domain, non-unicode domains, not ending in a period
+		    tldRegex = /\.(?:international|construction|contractors|enterprises|photography|productions|foundation|immobilien|industries|management|properties|technology|christmas|community|directory|education|equipment|institute|marketing|solutions|vacations|bargains|boutique|builders|catering|cleaning|clothing|computer|democrat|diamonds|graphics|holdings|lighting|partners|plumbing|supplies|training|ventures|academy|careers|company|cruises|domains|exposed|flights|florist|gallery|guitars|holiday|kitchen|neustar|okinawa|recipes|rentals|reviews|shiksha|singles|support|systems|agency|berlin|camera|center|coffee|condos|dating|estate|events|expert|futbol|kaufen|luxury|maison|monash|museum|nagoya|photos|repair|report|social|supply|tattoo|tienda|travel|viajes|villas|vision|voting|voyage|actor|build|cards|cheap|codes|dance|email|glass|house|mango|ninja|parts|photo|shoes|solar|today|tokyo|tools|watch|works|aero|arpa|asia|best|bike|blue|buzz|camp|club|cool|coop|farm|fish|gift|guru|info|jobs|kiwi|kred|land|limo|link|menu|mobi|moda|name|pics|pink|post|qpon|rich|ruhr|sexy|tips|vote|voto|wang|wien|wiki|zone|bar|bid|biz|cab|cat|ceo|com|edu|gov|int|kim|mil|net|onl|org|pro|pub|red|tel|uno|wed|xxx|xyz|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cu|cv|cw|cx|cy|cz|de|dj|dk|dm|do|dz|ec|ee|eg|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|sk|sl|sm|sn|so|sr|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|za|zm|zw)\b/,   // match our known top level domains (TLDs)
+
+		    // Allow optional path, query string, and hash anchor, not ending in the following characters: "?!:,.;"
+		    // http://blog.codinghorror.com/the-problem-with-urls/
+		    urlSuffixRegex = /[\-A-Za-z0-9+&@#\/%=~_()|'$*\[\]?!:,.;]*[\-A-Za-z0-9+&@#\/%=~_()|'$*\[\]]/;
+
+		return new RegExp( [
+			'(',  // *** Capturing group $1, which can be used to check for a twitter handle match. Use group $3 for the actual twitter handle though. $2 may be used to reconstruct the original string in a replace()
+				// *** Capturing group $2, which matches the whitespace character before the '@' sign (needed because of no lookbehinds), and
+				// *** Capturing group $3, which matches the actual twitter handle
+				twitterRegex.source,
+			')',
+
+			'|',
+
+			'(',  // *** Capturing group $4, which is used to determine an email match
+				emailRegex.source,
+				domainNameRegex.source,
+				tldRegex.source,
+			')',
+
+			'|',
+
+			'(',  // *** Capturing group $5, which is used to match a URL
+				'(?:', // parens to cover match for protocol (optional), and domain
+					'(',  // *** Capturing group $6, for a protocol-prefixed url (ex: http://google.com)
+						protocolRegex.source,
+						domainNameRegex.source,
+					')',
+
+					'|',
+
+					'(?:',  // non-capturing paren for a 'www.' prefixed url (ex: www.google.com)
+						'(.?//)?',  // *** Capturing group $7 for an optional protocol-relative URL. Must be at the beginning of the string or start with a non-word character
+						wwwRegex.source,
+						domainNameRegex.source,
+					')',
+
+					'|',
+
+					'(?:',  // non-capturing paren for known a TLD url (ex: google.com)
+						'(.?//)?',  // *** Capturing group $8 for an optional protocol-relative URL. Must be at the beginning of the string or start with a non-word character
+						domainNameRegex.source,
+						tldRegex.source,
+					')',
+				')',
+
+				'(?:' + urlSuffixRegex.source + ')?',  // match for path, query string, and/or hash anchor - optional
+			')',
+
+			'|',
+
+			// this setup does not scale well for open extension :( Need to rethink design of autolinker...
+			// ***  Capturing group $9, which matches a (USA for now) phone number
+			'(',
+				phoneRegex.source,
+			')',
+
+			'|',
+
+			'(',  // *** Capturing group $10, which can be used to check for a Hashtag match. Use group $12 for the actual Hashtag though. $11 may be used to reconstruct the original string in a replace()
+				// *** Capturing group $11, which matches the whitespace character before the '#' sign (needed because of no lookbehinds), and
+				// *** Capturing group $12, which matches the actual Hashtag
+				hashtagRegex.source,
+			')'
+		].join( "" ), 'gi' );
+	} )(),
+
+	/**
+	 * @private
+	 * @property {RegExp} charBeforeProtocolRelMatchRegex
+	 *
+	 * The regular expression used to retrieve the character before a
+	 * protocol-relative URL match.
+	 *
+	 * This is used in conjunction with the {@link #matcherRegex}, which needs
+	 * to grab the character before a protocol-relative '//' due to the lack of
+	 * a negative look-behind in JavaScript regular expressions. The character
+	 * before the match is stripped from the URL.
+	 */
+	charBeforeProtocolRelMatchRegex : /^(.)?\/\//,
+
+	/**
+	 * @private
+	 * @property {Autolinker.MatchValidator} matchValidator
+	 *
+	 * The MatchValidator object, used to filter out any false positives from
+	 * the {@link #matcherRegex}. See {@link Autolinker.MatchValidator} for details.
+	 */
+
+
+	/**
+	 * @constructor
+	 * @param {Object} [cfg] The configuration options for the AnchorTagBuilder
+	 * instance, specified in an Object (map).
+	 */
+	constructor : function( cfg ) {
+		Autolinker.Util.assign( this, cfg );
+
+		this.matchValidator = new Autolinker.MatchValidator();
+	},
+
+
+	/**
+	 * Parses the input `text` to search for matches, and calls the `replaceFn`
+	 * to allow replacements of the matches. Returns the `text` with matches
+	 * replaced.
+	 *
+	 * @param {String} text The text to search and repace matches in.
+	 * @param {Function} replaceFn The iterator function to handle the
+	 *   replacements. The function takes a single argument, a {@link Autolinker.match.Match}
+	 *   object, and should return the text that should make the replacement.
+	 * @param {Object} [contextObj=window] The context object ("scope") to run
+	 *   the `replaceFn` in.
+	 * @return {String}
+	 */
+	replace : function( text, replaceFn, contextObj ) {
+		var me = this;  // for closure
+
+		return text.replace( this.matcherRegex, function( matchStr, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12 ) {
+			var matchDescObj = me.processCandidateMatch( matchStr, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12 );  // "match description" object
+
+			// Return out with no changes for match types that are disabled (url,
+			// email, phone, etc.), or for matches that are invalid (false
+			// positives from the matcherRegex, which can't use look-behinds
+			// since they are unavailable in JS).
+			if( !matchDescObj ) {
+				return matchStr;
+
+			} else {
+				// Generate replacement text for the match from the `replaceFn`
+				var replaceStr = replaceFn.call( contextObj, matchDescObj.match );
+				return matchDescObj.prefixStr + replaceStr + matchDescObj.suffixStr;
+			}
+		} );
+	},
+
+
+	/**
+	 * Processes a candidate match from the {@link #matcherRegex}.
+	 *
+	 * Not all matches found by the regex are actual URL/Email/Phone/Twitter/Hashtag
+	 * matches, as determined by the {@link #matchValidator}. In this case, the
+	 * method returns `null`. Otherwise, a valid Object with `prefixStr`,
+	 * `match`, and `suffixStr` is returned.
+	 *
+	 * @private
+	 * @param {String} matchStr The full match that was found by the
+	 *   {@link #matcherRegex}.
+	 * @param {String} twitterMatch The matched text of a Twitter handle, if the
+	 *   match is a Twitter match.
+	 * @param {String} twitterHandlePrefixWhitespaceChar The whitespace char
+	 *   before the @ sign in a Twitter handle match. This is needed because of
+	 *   no lookbehinds in JS regexes, and is need to re-include the character
+	 *   for the anchor tag replacement.
+	 * @param {String} twitterHandle The actual Twitter user (i.e the word after
+	 *   the @ sign in a Twitter match).
+	 * @param {String} emailAddressMatch The matched email address for an email
+	 *   address match.
+	 * @param {String} urlMatch The matched URL string for a URL match.
+	 * @param {String} protocolUrlMatch The match URL string for a protocol
+	 *   match. Ex: 'http://yahoo.com'. This is used to match something like
+	 *   'http://localhost', where we won't double check that the domain name
+	 *   has at least one '.' in it.
+	 * @param {String} wwwProtocolRelativeMatch The '//' for a protocol-relative
+	 *   match from a 'www' url, with the character that comes before the '//'.
+	 * @param {String} tldProtocolRelativeMatch The '//' for a protocol-relative
+	 *   match from a TLD (top level domain) match, with the character that
+	 *   comes before the '//'.
+	 * @param {String} phoneMatch The matched text of a phone number
+	 * @param {String} hashtagMatch The matched text of a Twitter
+	 *   Hashtag, if the match is a Hashtag match.
+	 * @param {String} hashtagPrefixWhitespaceChar The whitespace char
+	 *   before the # sign in a Hashtag match. This is needed because of no
+	 *   lookbehinds in JS regexes, and is need to re-include the character for
+	 *   the anchor tag replacement.
+	 * @param {String} hashtag The actual Hashtag (i.e the word
+	 *   after the # sign in a Hashtag match).
+	 *
+	 * @return {Object} A "match description object". This will be `null` if the
+	 *   match was invalid, or if a match type is disabled. Otherwise, this will
+	 *   be an Object (map) with the following properties:
+	 * @return {String} return.prefixStr The char(s) that should be prepended to
+	 *   the replacement string. These are char(s) that were needed to be
+	 *   included from the regex match that were ignored by processing code, and
+	 *   should be re-inserted into the replacement stream.
+	 * @return {String} return.suffixStr The char(s) that should be appended to
+	 *   the replacement string. These are char(s) that were needed to be
+	 *   included from the regex match that were ignored by processing code, and
+	 *   should be re-inserted into the replacement stream.
+	 * @return {Autolinker.match.Match} return.match The Match object that
+	 *   represents the match that was found.
+	 */
+	processCandidateMatch : function(
+		matchStr, twitterMatch, twitterHandlePrefixWhitespaceChar, twitterHandle,
+		emailAddressMatch, urlMatch, protocolUrlMatch, wwwProtocolRelativeMatch,
+		tldProtocolRelativeMatch, phoneMatch, hashtagMatch,
+		hashtagPrefixWhitespaceChar, hashtag
+	) {
+		// Note: The `matchStr` variable wil be fixed up to remove characters that are no longer needed (which will
+		// be added to `prefixStr` and `suffixStr`).
+
+		var protocolRelativeMatch = wwwProtocolRelativeMatch || tldProtocolRelativeMatch,
+		    match,  // Will be an Autolinker.match.Match object
+
+		    prefixStr = "",  // A string to use to prefix the anchor tag that is created. This is needed for the Twitter and Hashtag matches.
+		    suffixStr = "";  // A string to suffix the anchor tag that is created. This is used if there is a trailing parenthesis that should not be auto-linked.
+
+		// Return out with `null` for match types that are disabled (url, email,
+		// twitter, hashtag), or for matches that are invalid (false positives
+		// from the matcherRegex, which can't use look-behinds since they are
+		// unavailable in JS).
+		if(
+			( urlMatch && !this.urls ) ||
+			( emailAddressMatch && !this.email ) ||
+			( phoneMatch && !this.phone ) ||
+			( twitterMatch && !this.twitter ) ||
+			( hashtagMatch && !this.hashtag ) ||
+			!this.matchValidator.isValidMatch( urlMatch, protocolUrlMatch, protocolRelativeMatch )
+		) {
+			return null;
+		}
+
+		// Handle a closing parenthesis at the end of the match, and exclude it
+		// if there is not a matching open parenthesis
+		// in the match itself.
+		if( this.matchHasUnbalancedClosingParen( matchStr ) ) {
+			matchStr = matchStr.substr( 0, matchStr.length - 1 );  // remove the trailing ")"
+			suffixStr = ")";  // this will be added after the generated <a> tag
+		}
+
+		if( emailAddressMatch ) {
+			match = new Autolinker.match.Email( { matchedText: matchStr, email: emailAddressMatch } );
+
+		} else if( twitterMatch ) {
+			// fix up the `matchStr` if there was a preceding whitespace char,
+			// which was needed to determine the match itself (since there are
+			// no look-behinds in JS regexes)
+			if( twitterHandlePrefixWhitespaceChar ) {
+				prefixStr = twitterHandlePrefixWhitespaceChar;
+				matchStr = matchStr.slice( 1 );  // remove the prefixed whitespace char from the match
+			}
+			match = new Autolinker.match.Twitter( { matchedText: matchStr, twitterHandle: twitterHandle } );
+
+		} else if( phoneMatch ) {
+			// remove non-numeric values from phone number string
+			var cleanNumber = matchStr.replace( /\D/g, '' );
+ 			match = new Autolinker.match.Phone( { matchedText: matchStr, number: cleanNumber } );
+
+		} else if( hashtagMatch ) {
+			// fix up the `matchStr` if there was a preceding whitespace char,
+			// which was needed to determine the match itself (since there are
+			// no look-behinds in JS regexes)
+			if( hashtagPrefixWhitespaceChar ) {
+				prefixStr = hashtagPrefixWhitespaceChar;
+				matchStr = matchStr.slice( 1 );  // remove the prefixed whitespace char from the match
+			}
+			match = new Autolinker.match.Hashtag( { matchedText: matchStr, serviceName: this.hashtag, hashtag: hashtag } );
+
+		} else {  // url match
+			// If it's a protocol-relative '//' match, remove the character
+			// before the '//' (which the matcherRegex needed to match due to
+			// the lack of a negative look-behind in JavaScript regular
+			// expressions)
+			if( protocolRelativeMatch ) {
+				var charBeforeMatch = protocolRelativeMatch.match( this.charBeforeProtocolRelMatchRegex )[ 1 ] || "";
+
+				if( charBeforeMatch ) {  // fix up the `matchStr` if there was a preceding char before a protocol-relative match, which was needed to determine the match itself (since there are no look-behinds in JS regexes)
+					prefixStr = charBeforeMatch;
+					matchStr = matchStr.slice( 1 );  // remove the prefixed char from the match
+				}
+			}
+
+			match = new Autolinker.match.Url( {
+				matchedText : matchStr,
+				url : matchStr,
+				protocolUrlMatch : !!protocolUrlMatch,
+				protocolRelativeMatch : !!protocolRelativeMatch,
+				stripPrefix : this.stripPrefix
+			} );
+		}
+
+		return {
+			prefixStr : prefixStr,
+			suffixStr : suffixStr,
+			match     : match
+		};
+	},
+
+
+	/**
+	 * Determines if a match found has an unmatched closing parenthesis. If so,
+	 * this parenthesis will be removed from the match itself, and appended
+	 * after the generated anchor tag in {@link #processCandidateMatch}.
+	 *
+	 * A match may have an extra closing parenthesis at the end of the match
+	 * because the regular expression must include parenthesis for URLs such as
+	 * "wikipedia.com/something_(disambiguation)", which should be auto-linked.
+	 *
+	 * However, an extra parenthesis *will* be included when the URL itself is
+	 * wrapped in parenthesis, such as in the case of "(wikipedia.com/something_(disambiguation))".
+	 * In this case, the last closing parenthesis should *not* be part of the
+	 * URL itself, and this method will return `true`.
+	 *
+	 * @private
+	 * @param {String} matchStr The full match string from the {@link #matcherRegex}.
+	 * @return {Boolean} `true` if there is an unbalanced closing parenthesis at
+	 *   the end of the `matchStr`, `false` otherwise.
+	 */
+	matchHasUnbalancedClosingParen : function( matchStr ) {
+		var lastChar = matchStr.charAt( matchStr.length - 1 );
+
+		if( lastChar === ')' ) {
+			var openParensMatch = matchStr.match( /\(/g ),
+			    closeParensMatch = matchStr.match( /\)/g ),
+			    numOpenParens = ( openParensMatch && openParensMatch.length ) || 0,
+			    numCloseParens = ( closeParensMatch && closeParensMatch.length ) || 0;
+
+			if( numOpenParens < numCloseParens ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+} );
+/*global Autolinker */
+/*jshint scripturl:true */
+/**
+ * @private
+ * @class Autolinker.MatchValidator
+ * @extends Object
+ *
+ * Used by Autolinker to filter out false positives from the
+ * {@link Autolinker.matchParser.MatchParser#matcherRegex}.
+ *
+ * Due to the limitations of regular expressions (including the missing feature
+ * of look-behinds in JS regular expressions), we cannot always determine the
+ * validity of a given match. This class applies a bit of additional logic to
+ * filter out any false positives that have been matched by the
+ * {@link Autolinker.matchParser.MatchParser#matcherRegex}.
+ */
+Autolinker.MatchValidator = Autolinker.Util.extend( Object, {
+
+	/**
+	 * @private
+	 * @property {RegExp} invalidProtocolRelMatchRegex
+	 *
+	 * The regular expression used to check a potential protocol-relative URL
+	 * match, coming from the {@link Autolinker.matchParser.MatchParser#matcherRegex}.
+	 * A protocol-relative URL is, for example, "//yahoo.com"
+	 *
+	 * This regular expression checks to see if there is a word character before
+	 * the '//' match in order to determine if we should actually autolink a
+	 * protocol-relative URL. This is needed because there is no negative
+	 * look-behind in JavaScript regular expressions.
+	 *
+	 * For instance, we want to autolink something like "Go to: //google.com",
+	 * but we don't want to autolink something like "abc//google.com"
+	 */
+	invalidProtocolRelMatchRegex : /^[\w]\/\//,
+
+	/**
+	 * Regex to test for a full protocol, with the two trailing slashes. Ex: 'http://'
+	 *
+	 * @private
+	 * @property {RegExp} hasFullProtocolRegex
+	 */
+	hasFullProtocolRegex : /^[A-Za-z][-.+A-Za-z0-9]+:\/\//,
+
+	/**
+	 * Regex to find the URI scheme, such as 'mailto:'.
+	 *
+	 * This is used to filter out 'javascript:' and 'vbscript:' schemes.
+	 *
+	 * @private
+	 * @property {RegExp} uriSchemeRegex
+	 */
+	uriSchemeRegex : /^[A-Za-z][-.+A-Za-z0-9]+:/,
+
+	/**
+	 * Regex to determine if at least one word char exists after the protocol (i.e. after the ':')
+	 *
+	 * @private
+	 * @property {RegExp} hasWordCharAfterProtocolRegex
+	 */
+	hasWordCharAfterProtocolRegex : /:[^\s]*?[A-Za-z]/,
+
+
+	/**
+	 * Determines if a given match found by the {@link Autolinker.matchParser.MatchParser}
+	 * is valid. Will return `false` for:
+	 *
+	 * 1) URL matches which do not have at least have one period ('.') in the
+	 *    domain name (effectively skipping over matches like "abc:def").
+	 *    However, URL matches with a protocol will be allowed (ex: 'http://localhost')
+	 * 2) URL matches which do not have at least one word character in the
+	 *    domain name (effectively skipping over matches like "git:1.0").
+	 * 3) A protocol-relative url match (a URL beginning with '//') whose
+	 *    previous character is a word character (effectively skipping over
+	 *    strings like "abc//google.com")
+	 *
+	 * Otherwise, returns `true`.
+	 *
+	 * @param {String} urlMatch The matched URL, if there was one. Will be an
+	 *   empty string if the match is not a URL match.
+	 * @param {String} protocolUrlMatch The match URL string for a protocol
+	 *   match. Ex: 'http://yahoo.com'. This is used to match something like
+	 *   'http://localhost', where we won't double check that the domain name
+	 *   has at least one '.' in it.
+	 * @param {String} protocolRelativeMatch The protocol-relative string for a
+	 *   URL match (i.e. '//'), possibly with a preceding character (ex, a
+	 *   space, such as: ' //', or a letter, such as: 'a//'). The match is
+	 *   invalid if there is a word character preceding the '//'.
+	 * @return {Boolean} `true` if the match given is valid and should be
+	 *   processed, or `false` if the match is invalid and/or should just not be
+	 *   processed.
+	 */
+	isValidMatch : function( urlMatch, protocolUrlMatch, protocolRelativeMatch ) {
+		if(
+			( protocolUrlMatch && !this.isValidUriScheme( protocolUrlMatch ) ) ||
+			this.urlMatchDoesNotHaveProtocolOrDot( urlMatch, protocolUrlMatch ) ||       // At least one period ('.') must exist in the URL match for us to consider it an actual URL, *unless* it was a full protocol match (like 'http://localhost')
+			this.urlMatchDoesNotHaveAtLeastOneWordChar( urlMatch, protocolUrlMatch ) ||  // At least one letter character must exist in the domain name after a protocol match. Ex: skip over something like "git:1.0"
+			this.isInvalidProtocolRelativeMatch( protocolRelativeMatch )                 // A protocol-relative match which has a word character in front of it (so we can skip something like "abc//google.com")
+		) {
+			return false;
+		}
+
+		return true;
+	},
+
+
+	/**
+	 * Determines if the URI scheme is a valid scheme to be autolinked. Returns
+	 * `false` if the scheme is 'javascript:' or 'vbscript:'
+	 *
+	 * @private
+	 * @param {String} uriSchemeMatch The match URL string for a full URI scheme
+	 *   match. Ex: 'http://yahoo.com' or 'mailto:a@a.com'.
+	 * @return {Boolean} `true` if the scheme is a valid one, `false` otherwise.
+	 */
+	isValidUriScheme : function( uriSchemeMatch ) {
+		var uriScheme = uriSchemeMatch.match( this.uriSchemeRegex )[ 0 ].toLowerCase();
+
+		return ( uriScheme !== 'javascript:' && uriScheme !== 'vbscript:' );
+	},
+
+
+	/**
+	 * Determines if a URL match does not have either:
+	 *
+	 * a) a full protocol (i.e. 'http://'), or
+	 * b) at least one dot ('.') in the domain name (for a non-full-protocol
+	 *    match).
+	 *
+	 * Either situation is considered an invalid URL (ex: 'git:d' does not have
+	 * either the '://' part, or at least one dot in the domain name. If the
+	 * match was 'git:abc.com', we would consider this valid.)
+	 *
+	 * @private
+	 * @param {String} urlMatch The matched URL, if there was one. Will be an
+	 *   empty string if the match is not a URL match.
+	 * @param {String} protocolUrlMatch The match URL string for a protocol
+	 *   match. Ex: 'http://yahoo.com'. This is used to match something like
+	 *   'http://localhost', where we won't double check that the domain name
+	 *   has at least one '.' in it.
+	 * @return {Boolean} `true` if the URL match does not have a full protocol,
+	 *   or at least one dot ('.') in a non-full-protocol match.
+	 */
+	urlMatchDoesNotHaveProtocolOrDot : function( urlMatch, protocolUrlMatch ) {
+		return ( !!urlMatch && ( !protocolUrlMatch || !this.hasFullProtocolRegex.test( protocolUrlMatch ) ) && urlMatch.indexOf( '.' ) === -1 );
+	},
+
+
+	/**
+	 * Determines if a URL match does not have at least one word character after
+	 * the protocol (i.e. in the domain name).
+	 *
+	 * At least one letter character must exist in the domain name after a
+	 * protocol match. Ex: skip over something like "git:1.0"
+	 *
+	 * @private
+	 * @param {String} urlMatch The matched URL, if there was one. Will be an
+	 *   empty string if the match is not a URL match.
+	 * @param {String} protocolUrlMatch The match URL string for a protocol
+	 *   match. Ex: 'http://yahoo.com'. This is used to know whether or not we
+	 *   have a protocol in the URL string, in order to check for a word
+	 *   character after the protocol separator (':').
+	 * @return {Boolean} `true` if the URL match does not have at least one word
+	 *   character in it after the protocol, `false` otherwise.
+	 */
+	urlMatchDoesNotHaveAtLeastOneWordChar : function( urlMatch, protocolUrlMatch ) {
+		if( urlMatch && protocolUrlMatch ) {
+			return !this.hasWordCharAfterProtocolRegex.test( urlMatch );
+		} else {
+			return false;
+		}
+	},
+
+
+	/**
+	 * Determines if a protocol-relative match is an invalid one. This method
+	 * returns `true` if there is a `protocolRelativeMatch`, and that match
+	 * contains a word character before the '//' (i.e. it must contain
+	 * whitespace or nothing before the '//' in order to be considered valid).
+	 *
+	 * @private
+	 * @param {String} protocolRelativeMatch The protocol-relative string for a
+	 *   URL match (i.e. '//'), possibly with a preceding character (ex, a
+	 *   space, such as: ' //', or a letter, such as: 'a//'). The match is
+	 *   invalid if there is a word character preceding the '//'.
+	 * @return {Boolean} `true` if it is an invalid protocol-relative match,
+	 *   `false` otherwise.
+	 */
+	isInvalidProtocolRelativeMatch : function( protocolRelativeMatch ) {
+		return ( !!protocolRelativeMatch && this.invalidProtocolRelMatchRegex.test( protocolRelativeMatch ) );
+	}
+
+} );
+/*global Autolinker */
+/**
+ * @abstract
+ * @class Autolinker.match.Match
+ * 
+ * Represents a match found in an input string which should be Autolinked. A Match object is what is provided in a 
+ * {@link Autolinker#replaceFn replaceFn}, and may be used to query for details about the match.
+ * 
+ * For example:
+ * 
+ *     var input = "...";  // string with URLs, Email Addresses, and Twitter Handles
+ *     
+ *     var linkedText = Autolinker.link( input, {
+ *         replaceFn : function( autolinker, match ) {
+ *             console.log( "href = ", match.getAnchorHref() );
+ *             console.log( "text = ", match.getAnchorText() );
+ *         
+ *             switch( match.getType() ) {
+ *                 case 'url' : 
+ *                     console.log( "url: ", match.getUrl() );
+ *                     
+ *                 case 'email' :
+ *                     console.log( "email: ", match.getEmail() );
+ *                     
+ *                 case 'twitter' :
+ *                     console.log( "twitter: ", match.getTwitterHandle() );
+ *             }
+ *         }
+ *     } );
+ *     
+ * See the {@link Autolinker} class for more details on using the {@link Autolinker#replaceFn replaceFn}.
+ */
+Autolinker.match.Match = Autolinker.Util.extend( Object, {
+	
+	/**
+	 * @cfg {String} matchedText (required)
+	 * 
+	 * The original text that was matched.
+	 */
+	
+	
+	/**
+	 * @constructor
+	 * @param {Object} cfg The configuration properties for the Match instance, specified in an Object (map).
+	 */
+	constructor : function( cfg ) {
+		Autolinker.Util.assign( this, cfg );
+	},
+
+	
+	/**
+	 * Returns a string name for the type of match that this class represents.
+	 * 
+	 * @abstract
+	 * @return {String}
+	 */
+	getType : Autolinker.Util.abstractMethod,
+	
+	
+	/**
+	 * Returns the original text that was matched.
+	 * 
+	 * @return {String}
+	 */
+	getMatchedText : function() {
+		return this.matchedText;
+	},
+	
+
+	/**
+	 * Returns the anchor href that should be generated for the match.
+	 * 
+	 * @abstract
+	 * @return {String}
+	 */
+	getAnchorHref : Autolinker.Util.abstractMethod,
+	
+	
+	/**
+	 * Returns the anchor text that should be generated for the match.
+	 * 
+	 * @abstract
+	 * @return {String}
+	 */
+	getAnchorText : Autolinker.Util.abstractMethod
+
+} );
+/*global Autolinker */
+/**
+ * @class Autolinker.match.Email
+ * @extends Autolinker.match.Match
+ * 
+ * Represents a Email match found in an input string which should be Autolinked.
+ * 
+ * See this class's superclass ({@link Autolinker.match.Match}) for more details.
+ */
+Autolinker.match.Email = Autolinker.Util.extend( Autolinker.match.Match, {
+	
+	/**
+	 * @cfg {String} email (required)
+	 * 
+	 * The email address that was matched.
+	 */
+	
+
+	/**
+	 * Returns a string name for the type of match that this class represents.
+	 * 
+	 * @return {String}
+	 */
+	getType : function() {
+		return 'email';
+	},
+	
+	
+	/**
+	 * Returns the email address that was matched.
+	 * 
+	 * @return {String}
+	 */
+	getEmail : function() {
+		return this.email;
+	},
+	
+
+	/**
+	 * Returns the anchor href that should be generated for the match.
+	 * 
+	 * @return {String}
+	 */
+	getAnchorHref : function() {
+		return 'mailto:' + this.email;
+	},
+	
+	
+	/**
+	 * Returns the anchor text that should be generated for the match.
+	 * 
+	 * @return {String}
+	 */
+	getAnchorText : function() {
+		return this.email;
+	}
+	
+} );
+/*global Autolinker */
+/**
+ * @class Autolinker.match.Hashtag
+ * @extends Autolinker.match.Match
+ *
+ * Represents a Hashtag match found in an input string which should be
+ * Autolinked.
+ *
+ * See this class's superclass ({@link Autolinker.match.Match}) for more
+ * details.
+ */
+Autolinker.match.Hashtag = Autolinker.Util.extend( Autolinker.match.Match, {
+
+	/**
+	 * @cfg {String} serviceName (required)
+	 *
+	 * The service to point hashtag matches to. See {@link Autolinker#hashtag}
+	 * for available values.
+	 */
+
+	/**
+	 * @cfg {String} hashtag (required)
+	 *
+	 * The Hashtag that was matched, without the '#'.
+	 */
+
+
+	/**
+	 * Returns the type of match that this class represents.
+	 *
+	 * @return {String}
+	 */
+	getType : function() {
+		return 'hashtag';
+	},
+
+
+	/**
+	 * Returns the matched hashtag.
+	 *
+	 * @return {String}
+	 */
+	getHashtag : function() {
+		return this.hashtag;
+	},
+
+
+	/**
+	 * Returns the anchor href that should be generated for the match.
+	 *
+	 * @return {String}
+	 */
+	getAnchorHref : function() {
+		var serviceName = this.serviceName,
+		    hashtag = this.hashtag;
+
+		switch( serviceName ) {
+			case 'twitter' :
+				return 'https://twitter.com/hashtag/' + hashtag;
+			case 'facebook' :
+				return 'https://www.facebook.com/hashtag/' + hashtag;
+
+			default :  // Shouldn't happen because Autolinker's constructor should block any invalid values, but just in case.
+				throw new Error( 'Unknown service name to point hashtag to: ', serviceName );
+		}
+	},
+
+
+	/**
+	 * Returns the anchor text that should be generated for the match.
+	 *
+	 * @return {String}
+	 */
+	getAnchorText : function() {
+		return '#' + this.hashtag;
+	}
+
+} );
+/*global Autolinker */
+/**
+ * @class Autolinker.match.Phone
+ * @extends Autolinker.match.Match
+ *
+ * Represents a Phone number match found in an input string which should be
+ * Autolinked.
+ *
+ * See this class's superclass ({@link Autolinker.match.Match}) for more
+ * details.
+ */
+Autolinker.match.Phone = Autolinker.Util.extend( Autolinker.match.Match, {
+
+	/**
+	 * @cfg {String} number (required)
+	 *
+	 * The phone number that was matched.
+	 */
+
+
+	/**
+	 * Returns a string name for the type of match that this class represents.
+	 *
+	 * @return {String}
+	 */
+	getType : function() {
+		return 'phone';
+	},
+
+
+	/**
+	 * Returns the phone number that was matched.
+	 *
+	 * @return {String}
+	 */
+	getNumber: function() {
+		return this.number;
+	},
+
+
+	/**
+	 * Returns the anchor href that should be generated for the match.
+	 *
+	 * @return {String}
+	 */
+	getAnchorHref : function() {
+		return 'tel:' + this.number;
+	},
+
+
+	/**
+	 * Returns the anchor text that should be generated for the match.
+	 *
+	 * @return {String}
+	 */
+	getAnchorText : function() {
+		return this.matchedText;
+	}
+
+} );
+
+/*global Autolinker */
+/**
+ * @class Autolinker.match.Twitter
+ * @extends Autolinker.match.Match
+ * 
+ * Represents a Twitter match found in an input string which should be Autolinked.
+ * 
+ * See this class's superclass ({@link Autolinker.match.Match}) for more details.
+ */
+Autolinker.match.Twitter = Autolinker.Util.extend( Autolinker.match.Match, {
+	
+	/**
+	 * @cfg {String} twitterHandle (required)
+	 * 
+	 * The Twitter handle that was matched.
+	 */
+	
+
+	/**
+	 * Returns the type of match that this class represents.
+	 * 
+	 * @return {String}
+	 */
+	getType : function() {
+		return 'twitter';
+	},
+	
+	
+	/**
+	 * Returns a string name for the type of match that this class represents.
+	 * 
+	 * @return {String}
+	 */
+	getTwitterHandle : function() {
+		return this.twitterHandle;
+	},
+	
+
+	/**
+	 * Returns the anchor href that should be generated for the match.
+	 * 
+	 * @return {String}
+	 */
+	getAnchorHref : function() {
+		return 'https://twitter.com/' + this.twitterHandle;
+	},
+	
+	
+	/**
+	 * Returns the anchor text that should be generated for the match.
+	 * 
+	 * @return {String}
+	 */
+	getAnchorText : function() {
+		return '@' + this.twitterHandle;
+	}
+	
+} );
+/*global Autolinker */
+/**
+ * @class Autolinker.match.Url
+ * @extends Autolinker.match.Match
+ * 
+ * Represents a Url match found in an input string which should be Autolinked.
+ * 
+ * See this class's superclass ({@link Autolinker.match.Match}) for more details.
+ */
+Autolinker.match.Url = Autolinker.Util.extend( Autolinker.match.Match, {
+	
+	/**
+	 * @cfg {String} url (required)
+	 * 
+	 * The url that was matched.
+	 */
+	
+	/**
+	 * @cfg {Boolean} protocolUrlMatch (required)
+	 * 
+	 * `true` if the URL is a match which already has a protocol (i.e. 'http://'), `false` if the match was from a 'www' or
+	 * known TLD match.
+	 */
+	
+	/**
+	 * @cfg {Boolean} protocolRelativeMatch (required)
+	 * 
+	 * `true` if the URL is a protocol-relative match. A protocol-relative match is a URL that starts with '//',
+	 * and will be either http:// or https:// based on the protocol that the site is loaded under.
+	 */
+	
+	/**
+	 * @cfg {Boolean} stripPrefix (required)
+	 * @inheritdoc Autolinker#stripPrefix
+	 */
+	
+
+	/**
+	 * @private
+	 * @property {RegExp} urlPrefixRegex
+	 * 
+	 * A regular expression used to remove the 'http://' or 'https://' and/or the 'www.' from URLs.
+	 */
+	urlPrefixRegex: /^(https?:\/\/)?(www\.)?/i,
+	
+	/**
+	 * @private
+	 * @property {RegExp} protocolRelativeRegex
+	 * 
+	 * The regular expression used to remove the protocol-relative '//' from the {@link #url} string, for purposes
+	 * of {@link #getAnchorText}. A protocol-relative URL is, for example, "//yahoo.com"
+	 */
+	protocolRelativeRegex : /^\/\//,
+	
+	/**
+	 * @private
+	 * @property {Boolean} protocolPrepended
+	 * 
+	 * Will be set to `true` if the 'http://' protocol has been prepended to the {@link #url} (because the
+	 * {@link #url} did not have a protocol)
+	 */
+	protocolPrepended : false,
+	
+
+	/**
+	 * Returns a string name for the type of match that this class represents.
+	 * 
+	 * @return {String}
+	 */
+	getType : function() {
+		return 'url';
+	},
+	
+	
+	/**
+	 * Returns the url that was matched, assuming the protocol to be 'http://' if the original
+	 * match was missing a protocol.
+	 * 
+	 * @return {String}
+	 */
+	getUrl : function() {
+		var url = this.url;
+		
+		// if the url string doesn't begin with a protocol, assume 'http://'
+		if( !this.protocolRelativeMatch && !this.protocolUrlMatch && !this.protocolPrepended ) {
+			url = this.url = 'http://' + url;
+			
+			this.protocolPrepended = true;
+		}
+		
+		return url;
+	},
+	
+
+	/**
+	 * Returns the anchor href that should be generated for the match.
+	 * 
+	 * @return {String}
+	 */
+	getAnchorHref : function() {
+		var url = this.getUrl();
+		
+		return url.replace( /&amp;/g, '&' );  // any &amp;'s in the URL should be converted back to '&' if they were displayed as &amp; in the source html 
+	},
+	
+	
+	/**
+	 * Returns the anchor text that should be generated for the match.
+	 * 
+	 * @return {String}
+	 */
+	getAnchorText : function() {
+		var anchorText = this.getUrl();
+		
+		if( this.protocolRelativeMatch ) {
+			// Strip off any protocol-relative '//' from the anchor text
+			anchorText = this.stripProtocolRelativePrefix( anchorText );
+		}
+		if( this.stripPrefix ) {
+			anchorText = this.stripUrlPrefix( anchorText );
+		}
+		anchorText = this.removeTrailingSlash( anchorText );  // remove trailing slash, if there is one
+		
+		return anchorText;
+	},
+	
+	
+	// ---------------------------------------
+	
+	// Utility Functionality
+	
+	/**
+	 * Strips the URL prefix (such as "http://" or "https://") from the given text.
+	 * 
+	 * @private
+	 * @param {String} text The text of the anchor that is being generated, for which to strip off the
+	 *   url prefix (such as stripping off "http://")
+	 * @return {String} The `anchorText`, with the prefix stripped.
+	 */
+	stripUrlPrefix : function( text ) {
+		return text.replace( this.urlPrefixRegex, '' );
+	},
+	
+	
+	/**
+	 * Strips any protocol-relative '//' from the anchor text.
+	 * 
+	 * @private
+	 * @param {String} text The text of the anchor that is being generated, for which to strip off the
+	 *   protocol-relative prefix (such as stripping off "//")
+	 * @return {String} The `anchorText`, with the protocol-relative prefix stripped.
+	 */
+	stripProtocolRelativePrefix : function( text ) {
+		return text.replace( this.protocolRelativeRegex, '' );
+	},
+	
+	
+	/**
+	 * Removes any trailing slash from the given `anchorText`, in preparation for the text to be displayed.
+	 * 
+	 * @private
+	 * @param {String} anchorText The text of the anchor that is being generated, for which to remove any trailing
+	 *   slash ('/') that may exist.
+	 * @return {String} The `anchorText`, with the trailing slash removed.
+	 */
+	removeTrailingSlash : function( anchorText ) {
+		if( anchorText.charAt( anchorText.length - 1 ) === '/' ) {
+			anchorText = anchorText.slice( 0, -1 );
+		}
+		return anchorText;
+	}
+	
+} );
+return Autolinker;
+
+}));
+
+},{}],7:[function(require,module,exports){
 "use strict";
 
 var Node = require('./node');
@@ -4863,7 +4622,7 @@ function Parser(options){
 
 module.exports = Parser;
 
-},{"./common":80,"./inlines":85,"./node":86}],80:[function(require,module,exports){
+},{"./common":8,"./inlines":13,"./node":14}],8:[function(require,module,exports){
 "use strict";
 
 var C_BACKSLASH = 92;
@@ -4942,7 +4701,7 @@ module.exports = { unescapeString: unescapeString,
                    escapeXml: escapeXml
                  };
 
-},{"./html5-entities.js":83}],81:[function(require,module,exports){
+},{"./html5-entities.js":11}],9:[function(require,module,exports){
 "use strict";
 
 // derived from https://github.com/mathiasbynens/String.fromCodePoint
@@ -5003,7 +4762,7 @@ if (String.fromCodePoint) {
   module.exports = fromCodePoint;
 }
 
-},{}],82:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 "use strict";
 
 var escapeXml = require('./common').escapeXml;
@@ -5251,7 +5010,7 @@ function HtmlRenderer(options){
 
 module.exports = HtmlRenderer;
 
-},{"./common":80}],83:[function(require,module,exports){
+},{"./common":8}],11:[function(require,module,exports){
 "use strict";
 
 var fromCodePoint = require('./from-code-point');
@@ -7408,7 +7167,7 @@ var entityToChar = function(m) {
 
 module.exports.entityToChar = entityToChar;
 
-},{"./from-code-point":81}],84:[function(require,module,exports){
+},{"./from-code-point":9}],12:[function(require,module,exports){
 "use strict";
 
 // commonmark.js - CommomMark in JavaScript
@@ -7427,7 +7186,7 @@ module.exports.Parser = require('./blocks');
 module.exports.HtmlRenderer = require('./html');
 module.exports.XmlRenderer = require('./xml');
 
-},{"./blocks":79,"./html":82,"./node":86,"./xml":88}],85:[function(require,module,exports){
+},{"./blocks":7,"./html":10,"./node":14,"./xml":16}],13:[function(require,module,exports){
 "use strict";
 
 var Node = require('./node');
@@ -8308,7 +8067,7 @@ function InlineParser(options){
 
 module.exports = InlineParser;
 
-},{"./common":80,"./from-code-point.js":81,"./html5-entities.js":83,"./node":86,"./normalize-reference":87}],86:[function(require,module,exports){
+},{"./common":8,"./from-code-point.js":9,"./html5-entities.js":11,"./node":14,"./normalize-reference":15}],14:[function(require,module,exports){
 "use strict";
 
 function isContainer(node) {
@@ -8564,7 +8323,7 @@ module.exports = Node;
 
  */
 
-},{}],87:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 "use strict";
 
 /* The bulk of this code derives from https://github.com/dmoscrop/fold-case
@@ -8608,7 +8367,7 @@ module.exports = function(string) {
     });
 };
 
-},{}],88:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 "use strict";
 
 var escapeXml = require('./common').escapeXml;
@@ -8781,4 +8540,3018 @@ function XmlRenderer(options){
 
 module.exports = XmlRenderer;
 
-},{"./common":80}]},{},[5]);
+},{"./common":8}],17:[function(require,module,exports){
+(function (global){
+"use strict";
+
+if (global._babelPolyfill) {
+  throw new Error("only one instance of babel/polyfill is allowed");
+}
+global._babelPolyfill = true;
+
+require("core-js/shim");
+
+require("regenerator-babel/runtime");
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"core-js/shim":86,"regenerator-babel/runtime":87}],18:[function(require,module,exports){
+'use strict';
+// false -> Array#indexOf
+// true  -> Array#includes
+var $ = require('./$');
+module.exports = function(IS_INCLUDES){
+  return function(el /*, fromIndex = 0 */){
+    var O      = $.toObject(this)
+      , length = $.toLength(O.length)
+      , index  = $.toIndex(arguments[1], length)
+      , value;
+    if(IS_INCLUDES && el != el)while(length > index){
+      value = O[index++];
+      if(value != value)return true;
+    } else for(;length > index; index++)if(IS_INCLUDES || index in O){
+      if(O[index] === el)return IS_INCLUDES || index;
+    } return !IS_INCLUDES && -1;
+  };
+};
+},{"./$":31}],19:[function(require,module,exports){
+'use strict';
+// 0 -> Array#forEach
+// 1 -> Array#map
+// 2 -> Array#filter
+// 3 -> Array#some
+// 4 -> Array#every
+// 5 -> Array#find
+// 6 -> Array#findIndex
+var $   = require('./$')
+  , ctx = require('./$.ctx');
+module.exports = function(TYPE){
+  var IS_MAP        = TYPE == 1
+    , IS_FILTER     = TYPE == 2
+    , IS_SOME       = TYPE == 3
+    , IS_EVERY      = TYPE == 4
+    , IS_FIND_INDEX = TYPE == 6
+    , NO_HOLES      = TYPE == 5 || IS_FIND_INDEX;
+  return function(callbackfn/*, that = undefined */){
+    var O      = Object($.assertDefined(this))
+      , self   = $.ES5Object(O)
+      , f      = ctx(callbackfn, arguments[1], 3)
+      , length = $.toLength(self.length)
+      , index  = 0
+      , result = IS_MAP ? Array(length) : IS_FILTER ? [] : undefined
+      , val, res;
+    for(;length > index; index++)if(NO_HOLES || index in self){
+      val = self[index];
+      res = f(val, index, O);
+      if(TYPE){
+        if(IS_MAP)result[index] = res;            // map
+        else if(res)switch(TYPE){
+          case 3: return true;                    // some
+          case 5: return val;                     // find
+          case 6: return index;                   // findIndex
+          case 2: result.push(val);               // filter
+        } else if(IS_EVERY)return false;          // every
+      }
+    }
+    return IS_FIND_INDEX ? -1 : IS_SOME || IS_EVERY ? IS_EVERY : result;
+  };
+};
+},{"./$":31,"./$.ctx":26}],20:[function(require,module,exports){
+var $ = require('./$');
+function assert(condition, msg1, msg2){
+  if(!condition)throw TypeError(msg2 ? msg1 + msg2 : msg1);
+}
+assert.def = $.assertDefined;
+assert.fn = function(it){
+  if(!$.isFunction(it))throw TypeError(it + ' is not a function!');
+  return it;
+};
+assert.obj = function(it){
+  if(!$.isObject(it))throw TypeError(it + ' is not an object!');
+  return it;
+};
+assert.inst = function(it, Constructor, name){
+  if(!(it instanceof Constructor))throw TypeError(name + ": use the 'new' operator!");
+  return it;
+};
+module.exports = assert;
+},{"./$":31}],21:[function(require,module,exports){
+var $ = require('./$');
+// 19.1.2.1 Object.assign(target, source, ...)
+module.exports = Object.assign || function(target, source){ // eslint-disable-line no-unused-vars
+  var T = Object($.assertDefined(target))
+    , l = arguments.length
+    , i = 1;
+  while(l > i){
+    var S      = $.ES5Object(arguments[i++])
+      , keys   = $.getKeys(S)
+      , length = keys.length
+      , j      = 0
+      , key;
+    while(length > j)T[key = keys[j++]] = S[key];
+  }
+  return T;
+};
+},{"./$":31}],22:[function(require,module,exports){
+var $        = require('./$')
+  , TAG      = require('./$.wks')('toStringTag')
+  , toString = {}.toString;
+function cof(it){
+  return toString.call(it).slice(8, -1);
+}
+cof.classof = function(it){
+  var O, T;
+  return it == undefined ? it === undefined ? 'Undefined' : 'Null'
+    : typeof (T = (O = Object(it))[TAG]) == 'string' ? T : cof(O);
+};
+cof.set = function(it, tag, stat){
+  if(it && !$.has(it = stat ? it : it.prototype, TAG))$.hide(it, TAG, tag);
+};
+module.exports = cof;
+},{"./$":31,"./$.wks":42}],23:[function(require,module,exports){
+'use strict';
+var $        = require('./$')
+  , ctx      = require('./$.ctx')
+  , safe     = require('./$.uid').safe
+  , assert   = require('./$.assert')
+  , $iter    = require('./$.iter')
+  , has      = $.has
+  , set      = $.set
+  , isObject = $.isObject
+  , hide     = $.hide
+  , step     = $iter.step
+  , isFrozen = Object.isFrozen || $.core.Object.isFrozen
+  , ID       = safe('id')
+  , O1       = safe('O1')
+  , LAST     = safe('last')
+  , FIRST    = safe('first')
+  , ITER     = safe('iter')
+  , SIZE     = $.DESC ? safe('size') : 'size'
+  , id       = 0;
+
+function fastKey(it, create){
+  // return primitive with prefix
+  if(!isObject(it))return (typeof it == 'string' ? 'S' : 'P') + it;
+  // can't set id to frozen object
+  if(isFrozen(it))return 'F';
+  if(!has(it, ID)){
+    // not necessary to add id
+    if(!create)return 'E';
+    // add missing object id
+    hide(it, ID, ++id);
+  // return object id with prefix
+  } return 'O' + it[ID];
+}
+
+function getEntry(that, key){
+  // fast case
+  var index = fastKey(key), entry;
+  if(index != 'F')return that[O1][index];
+  // frozen object case
+  for(entry = that[FIRST]; entry; entry = entry.n){
+    if(entry.k == key)return entry;
+  }
+}
+
+module.exports = {
+  getConstructor: function(NAME, IS_MAP, ADDER){
+    function C(iterable){
+      var that = assert.inst(this, C, NAME);
+      set(that, O1, $.create(null));
+      set(that, SIZE, 0);
+      set(that, LAST, undefined);
+      set(that, FIRST, undefined);
+      if(iterable != undefined)$iter.forOf(iterable, IS_MAP, that[ADDER], that);
+    }
+    $.mix(C.prototype, {
+      // 23.1.3.1 Map.prototype.clear()
+      // 23.2.3.2 Set.prototype.clear()
+      clear: function(){
+        for(var that = this, data = that[O1], entry = that[FIRST]; entry; entry = entry.n){
+          entry.r = true;
+          if(entry.p)entry.p = entry.p.n = undefined;
+          delete data[entry.i];
+        }
+        that[FIRST] = that[LAST] = undefined;
+        that[SIZE] = 0;
+      },
+      // 23.1.3.3 Map.prototype.delete(key)
+      // 23.2.3.4 Set.prototype.delete(value)
+      'delete': function(key){
+        var that  = this
+          , entry = getEntry(that, key);
+        if(entry){
+          var next = entry.n
+            , prev = entry.p;
+          delete that[O1][entry.i];
+          entry.r = true;
+          if(prev)prev.n = next;
+          if(next)next.p = prev;
+          if(that[FIRST] == entry)that[FIRST] = next;
+          if(that[LAST] == entry)that[LAST] = prev;
+          that[SIZE]--;
+        } return !!entry;
+      },
+      // 23.2.3.6 Set.prototype.forEach(callbackfn, thisArg = undefined)
+      // 23.1.3.5 Map.prototype.forEach(callbackfn, thisArg = undefined)
+      forEach: function(callbackfn /*, that = undefined */){
+        var f = ctx(callbackfn, arguments[1], 3)
+          , entry;
+        while(entry = entry ? entry.n : this[FIRST]){
+          f(entry.v, entry.k, this);
+          // revert to the last existing entry
+          while(entry && entry.r)entry = entry.p;
+        }
+      },
+      // 23.1.3.7 Map.prototype.has(key)
+      // 23.2.3.7 Set.prototype.has(value)
+      has: function(key){
+        return !!getEntry(this, key);
+      }
+    });
+    if($.DESC)$.setDesc(C.prototype, 'size', {
+      get: function(){
+        return assert.def(this[SIZE]);
+      }
+    });
+    return C;
+  },
+  def: function(that, key, value){
+    var entry = getEntry(that, key)
+      , prev, index;
+    // change existing entry
+    if(entry){
+      entry.v = value;
+    // create new entry
+    } else {
+      that[LAST] = entry = {
+        i: index = fastKey(key, true), // <- index
+        k: key,                        // <- key
+        v: value,                      // <- value
+        p: prev = that[LAST],          // <- previous entry
+        n: undefined,                  // <- next entry
+        r: false                       // <- removed
+      };
+      if(!that[FIRST])that[FIRST] = entry;
+      if(prev)prev.n = entry;
+      that[SIZE]++;
+      // add to index
+      if(index != 'F')that[O1][index] = entry;
+    } return that;
+  },
+  getEntry: getEntry,
+  getIterConstructor: function(){
+    return function(iterated, kind){
+      set(this, ITER, {o: iterated, k: kind});
+    };
+  },
+  next: function(){
+    var iter  = this[ITER]
+      , kind  = iter.k
+      , entry = iter.l;
+    // revert to the last existing entry
+    while(entry && entry.r)entry = entry.p;
+    // get next entry
+    if(!iter.o || !(iter.l = entry = entry ? entry.n : iter.o[FIRST])){
+      // or finish the iteration
+      iter.o = undefined;
+      return step(1);
+    }
+    // return step by kind
+    if(kind == 'key'  )return step(0, entry.k);
+    if(kind == 'value')return step(0, entry.v);
+    return step(0, [entry.k, entry.v]);
+  }
+};
+},{"./$":31,"./$.assert":20,"./$.ctx":26,"./$.iter":30,"./$.uid":40}],24:[function(require,module,exports){
+'use strict';
+var $         = require('./$')
+  , safe      = require('./$.uid').safe
+  , assert    = require('./$.assert')
+  , forOf     = require('./$.iter').forOf
+  , has       = $.has
+  , isObject  = $.isObject
+  , hide      = $.hide
+  , isFrozen  = Object.isFrozen || $.core.Object.isFrozen
+  , id        = 0
+  , ID        = safe('id')
+  , WEAK      = safe('weak')
+  , LEAK      = safe('leak')
+  , method    = require('./$.array-methods')
+  , find      = method(5)
+  , findIndex = method(6);
+function findFrozen(store, key){
+  return find.call(store.array, function(it){
+    return it[0] === key;
+  });
+}
+// fallback for frozen keys
+function leakStore(that){
+  return that[LEAK] || hide(that, LEAK, {
+    array: [],
+    get: function(key){
+      var entry = findFrozen(this, key);
+      if(entry)return entry[1];
+    },
+    has: function(key){
+      return !!findFrozen(this, key);
+    },
+    set: function(key, value){
+      var entry = findFrozen(this, key);
+      if(entry)entry[1] = value;
+      else this.array.push([key, value]);
+    },
+    'delete': function(key){
+      var index = findIndex.call(this.array, function(it){
+        return it[0] === key;
+      });
+      if(~index)this.array.splice(index, 1);
+      return !!~index;
+    }
+  })[LEAK];
+}
+
+module.exports = {
+  getConstructor: function(NAME, IS_MAP, ADDER){
+    function C(iterable){
+      $.set(assert.inst(this, C, NAME), ID, id++);
+      if(iterable != undefined)forOf(iterable, IS_MAP, this[ADDER], this);
+    }
+    $.mix(C.prototype, {
+      // 23.3.3.2 WeakMap.prototype.delete(key)
+      // 23.4.3.3 WeakSet.prototype.delete(value)
+      'delete': function(key){
+        if(!isObject(key))return false;
+        if(isFrozen(key))return leakStore(this)['delete'](key);
+        return has(key, WEAK) && has(key[WEAK], this[ID]) && delete key[WEAK][this[ID]];
+      },
+      // 23.3.3.4 WeakMap.prototype.has(key)
+      // 23.4.3.4 WeakSet.prototype.has(value)
+      has: function(key){
+        if(!isObject(key))return false;
+        if(isFrozen(key))return leakStore(this).has(key);
+        return has(key, WEAK) && has(key[WEAK], this[ID]);
+      }
+    });
+    return C;
+  },
+  def: function(that, key, value){
+    if(isFrozen(assert.obj(key))){
+      leakStore(that).set(key, value);
+    } else {
+      has(key, WEAK) || hide(key, WEAK, {});
+      key[WEAK][that[ID]] = value;
+    } return that;
+  },
+  leakStore: leakStore,
+  WEAK: WEAK,
+  ID: ID
+};
+},{"./$":31,"./$.array-methods":19,"./$.assert":20,"./$.iter":30,"./$.uid":40}],25:[function(require,module,exports){
+'use strict';
+var $     = require('./$')
+  , $def  = require('./$.def')
+  , $iter = require('./$.iter')
+  , assertInstance = require('./$.assert').inst;
+
+module.exports = function(NAME, methods, common, IS_MAP, isWeak){
+  var Base  = $.g[NAME]
+    , C     = Base
+    , ADDER = IS_MAP ? 'set' : 'add'
+    , proto = C && C.prototype
+    , O     = {};
+  function fixMethod(KEY, CHAIN){
+    var method = proto[KEY];
+    if($.FW)proto[KEY] = function(a, b){
+      var result = method.call(this, a === 0 ? 0 : a, b);
+      return CHAIN ? this : result;
+    };
+  }
+  if(!$.isFunction(C) || !(isWeak || !$iter.BUGGY && proto.forEach && proto.entries)){
+    // create collection constructor
+    C = common.getConstructor(NAME, IS_MAP, ADDER);
+    $.mix(C.prototype, methods);
+  } else {
+    var inst  = new C
+      , chain = inst[ADDER](isWeak ? {} : -0, 1)
+      , buggyZero;
+    // wrap for init collections from iterable
+    if($iter.fail(function(iter){
+      new C(iter); // eslint-disable-line no-new
+    }) || $iter.DANGER_CLOSING){
+      C = function(iterable){
+        assertInstance(this, C, NAME);
+        var that = new Base;
+        if(iterable != undefined)$iter.forOf(iterable, IS_MAP, that[ADDER], that);
+        return that;
+      };
+      C.prototype = proto;
+      if($.FW)proto.constructor = C;
+    }
+    isWeak || inst.forEach(function(val, key){
+      buggyZero = 1 / key === -Infinity;
+    });
+    // fix converting -0 key to +0
+    if(buggyZero){
+      fixMethod('delete');
+      fixMethod('has');
+      IS_MAP && fixMethod('get');
+    }
+    // + fix .add & .set for chaining
+    if(buggyZero || chain !== inst)fixMethod(ADDER, true);
+  }
+
+  require('./$.cof').set(C, NAME);
+  require('./$.species')(C);
+
+  O[NAME] = C;
+  $def($def.G + $def.W + $def.F * (C != Base), O);
+
+  // add .keys, .values, .entries, [@@iterator]
+  // 23.1.3.4, 23.1.3.8, 23.1.3.11, 23.1.3.12, 23.2.3.5, 23.2.3.8, 23.2.3.10, 23.2.3.11
+  if(!isWeak)$iter.std(
+    C, NAME,
+    common.getIterConstructor(), common.next,
+    IS_MAP ? 'key+value' : 'value' , !IS_MAP, true
+  );
+
+  return C;
+};
+},{"./$":31,"./$.assert":20,"./$.cof":22,"./$.def":27,"./$.iter":30,"./$.species":37}],26:[function(require,module,exports){
+// Optional / simple context binding
+var assertFunction = require('./$.assert').fn;
+module.exports = function(fn, that, length){
+  assertFunction(fn);
+  if(~length && that === undefined)return fn;
+  switch(length){
+    case 1: return function(a){
+      return fn.call(that, a);
+    };
+    case 2: return function(a, b){
+      return fn.call(that, a, b);
+    };
+    case 3: return function(a, b, c){
+      return fn.call(that, a, b, c);
+    };
+  } return function(/* ...args */){
+      return fn.apply(that, arguments);
+    };
+};
+},{"./$.assert":20}],27:[function(require,module,exports){
+var $          = require('./$')
+  , global     = $.g
+  , core       = $.core
+  , isFunction = $.isFunction;
+function ctx(fn, that){
+  return function(){
+    return fn.apply(that, arguments);
+  };
+}
+global.core = core;
+// type bitmap
+$def.F = 1;  // forced
+$def.G = 2;  // global
+$def.S = 4;  // static
+$def.P = 8;  // proto
+$def.B = 16; // bind
+$def.W = 32; // wrap
+function $def(type, name, source){
+  var key, own, out, exp
+    , isGlobal = type & $def.G
+    , target   = isGlobal ? global : type & $def.S
+        ? global[name] : (global[name] || {}).prototype
+    , exports  = isGlobal ? core : core[name] || (core[name] = {});
+  if(isGlobal)source = name;
+  for(key in source){
+    // contains in native
+    own = !(type & $def.F) && target && key in target;
+    // export native or passed
+    out = (own ? target : source)[key];
+    // bind timers to global for call from export context
+    if(type & $def.B && own)exp = ctx(out, global);
+    else exp = type & $def.P && isFunction(out) ? ctx(Function.call, out) : out;
+    // extend global
+    if(target && !own){
+      if(isGlobal)target[key] = out;
+      else delete target[key] && $.hide(target, key, out);
+    }
+    // export
+    if(exports[key] != out)$.hide(exports, key, exp);
+  }
+}
+module.exports = $def;
+},{"./$":31}],28:[function(require,module,exports){
+module.exports = function($){
+  $.FW   = true;
+  $.path = $.g;
+  return $;
+};
+},{}],29:[function(require,module,exports){
+// Fast apply
+// http://jsperf.lnkit.com/fast-apply/5
+module.exports = function(fn, args, that){
+  var un = that === undefined;
+  switch(args.length){
+    case 0: return un ? fn()
+                      : fn.call(that);
+    case 1: return un ? fn(args[0])
+                      : fn.call(that, args[0]);
+    case 2: return un ? fn(args[0], args[1])
+                      : fn.call(that, args[0], args[1]);
+    case 3: return un ? fn(args[0], args[1], args[2])
+                      : fn.call(that, args[0], args[1], args[2]);
+    case 4: return un ? fn(args[0], args[1], args[2], args[3])
+                      : fn.call(that, args[0], args[1], args[2], args[3]);
+    case 5: return un ? fn(args[0], args[1], args[2], args[3], args[4])
+                      : fn.call(that, args[0], args[1], args[2], args[3], args[4]);
+  } return              fn.apply(that, args);
+};
+},{}],30:[function(require,module,exports){
+'use strict';
+var $                 = require('./$')
+  , ctx               = require('./$.ctx')
+  , cof               = require('./$.cof')
+  , $def              = require('./$.def')
+  , assertObject      = require('./$.assert').obj
+  , SYMBOL_ITERATOR   = require('./$.wks')('iterator')
+  , FF_ITERATOR       = '@@iterator'
+  , Iterators         = {}
+  , IteratorPrototype = {};
+// Safari has byggy iterators w/o `next`
+var BUGGY = 'keys' in [] && !('next' in [].keys());
+// 25.1.2.1.1 %IteratorPrototype%[@@iterator]()
+setIterator(IteratorPrototype, $.that);
+function setIterator(O, value){
+  $.hide(O, SYMBOL_ITERATOR, value);
+  // Add iterator for FF iterator protocol
+  if(FF_ITERATOR in [])$.hide(O, FF_ITERATOR, value);
+}
+function defineIterator(Constructor, NAME, value, DEFAULT){
+  var proto = Constructor.prototype
+    , iter  = proto[SYMBOL_ITERATOR] || proto[FF_ITERATOR] || DEFAULT && proto[DEFAULT] || value;
+  // Define iterator
+  if($.FW)setIterator(proto, iter);
+  if(iter !== value){
+    var iterProto = $.getProto(iter.call(new Constructor));
+    // Set @@toStringTag to native iterators
+    cof.set(iterProto, NAME + ' Iterator', true);
+    // FF fix
+    if($.FW)$.has(proto, FF_ITERATOR) && setIterator(iterProto, $.that);
+  }
+  // Plug for library
+  Iterators[NAME] = iter;
+  // FF & v8 fix
+  Iterators[NAME + ' Iterator'] = $.that;
+  return iter;
+}
+function getIterator(it){
+  var Symbol  = $.g.Symbol
+    , ext     = it[Symbol && Symbol.iterator || FF_ITERATOR]
+    , getIter = ext || it[SYMBOL_ITERATOR] || Iterators[cof.classof(it)];
+  return assertObject(getIter.call(it));
+}
+function closeIterator(iterator){
+  var ret = iterator['return'];
+  if(ret !== undefined)assertObject(ret.call(iterator));
+}
+function stepCall(iterator, fn, value, entries){
+  try {
+    return entries ? fn(assertObject(value)[0], value[1]) : fn(value);
+  } catch(e){
+    closeIterator(iterator);
+    throw e;
+  }
+}
+var DANGER_CLOSING = true;
+!function(){
+  try {
+    var iter = [1].keys();
+    iter['return'] = function(){ DANGER_CLOSING = false; };
+    Array.from(iter, function(){ throw 2; });
+  } catch(e){ /* empty */ }
+}();
+var $iter = module.exports = {
+  BUGGY: BUGGY,
+  DANGER_CLOSING: DANGER_CLOSING,
+  fail: function(exec){
+    var fail = true;
+    try {
+      var arr  = [[{}, 1]]
+        , iter = arr[SYMBOL_ITERATOR]()
+        , next = iter.next;
+      iter.next = function(){
+        fail = false;
+        return next.call(this);
+      };
+      arr[SYMBOL_ITERATOR] = function(){
+        return iter;
+      };
+      exec(arr);
+    } catch(e){ /* empty */ }
+    return fail;
+  },
+  Iterators: Iterators,
+  prototype: IteratorPrototype,
+  step: function(done, value){
+    return {value: value, done: !!done};
+  },
+  stepCall: stepCall,
+  close: closeIterator,
+  is: function(it){
+    var O      = Object(it)
+      , Symbol = $.g.Symbol
+      , SYM    = Symbol && Symbol.iterator || FF_ITERATOR;
+    return SYM in O || SYMBOL_ITERATOR in O || $.has(Iterators, cof.classof(O));
+  },
+  get: getIterator,
+  set: setIterator,
+  create: function(Constructor, NAME, next, proto){
+    Constructor.prototype = $.create(proto || $iter.prototype, {next: $.desc(1, next)});
+    cof.set(Constructor, NAME + ' Iterator');
+  },
+  define: defineIterator,
+  std: function(Base, NAME, Constructor, next, DEFAULT, IS_SET, FORCE){
+    function createIter(kind){
+      return function(){
+        return new Constructor(this, kind);
+      };
+    }
+    $iter.create(Constructor, NAME, next);
+    var entries = createIter('key+value')
+      , values  = createIter('value')
+      , proto   = Base.prototype
+      , methods, key;
+    if(DEFAULT == 'value')values = defineIterator(Base, NAME, values, 'values');
+    else entries = defineIterator(Base, NAME, entries, 'entries');
+    if(DEFAULT){
+      methods = {
+        entries: entries,
+        keys:    IS_SET ? values : createIter('key'),
+        values:  values
+      };
+      $def($def.P + $def.F * BUGGY, NAME, methods);
+      if(FORCE)for(key in methods){
+        if(!(key in proto))$.hide(proto, key, methods[key]);
+      }
+    }
+  },
+  forOf: function(iterable, entries, fn, that){
+    var iterator = getIterator(iterable)
+      , f = ctx(fn, that, entries ? 2 : 1)
+      , step;
+    while(!(step = iterator.next()).done){
+      if(stepCall(iterator, f, step.value, entries) === false){
+        return closeIterator(iterator);
+      }
+    }
+  }
+};
+},{"./$":31,"./$.assert":20,"./$.cof":22,"./$.ctx":26,"./$.def":27,"./$.wks":42}],31:[function(require,module,exports){
+'use strict';
+var global = typeof self != 'undefined' ? self : Function('return this')()
+  , core   = {}
+  , defineProperty = Object.defineProperty
+  , hasOwnProperty = {}.hasOwnProperty
+  , ceil  = Math.ceil
+  , floor = Math.floor
+  , max   = Math.max
+  , min   = Math.min;
+// The engine works fine with descriptors? Thank's IE8 for his funny defineProperty.
+var DESC = !!function(){
+  try {
+    return defineProperty({}, 'a', {get: function(){ return 2; }}).a == 2;
+  } catch(e){ /* empty */ }
+}();
+var hide = createDefiner(1);
+// 7.1.4 ToInteger
+function toInteger(it){
+  return isNaN(it = +it) ? 0 : (it > 0 ? floor : ceil)(it);
+}
+function desc(bitmap, value){
+  return {
+    enumerable  : !(bitmap & 1),
+    configurable: !(bitmap & 2),
+    writable    : !(bitmap & 4),
+    value       : value
+  };
+}
+function simpleSet(object, key, value){
+  object[key] = value;
+  return object;
+}
+function createDefiner(bitmap){
+  return DESC ? function(object, key, value){
+    return $.setDesc(object, key, desc(bitmap, value)); // eslint-disable-line no-use-before-define
+  } : simpleSet;
+}
+
+function isObject(it){
+  return it !== null && (typeof it == 'object' || typeof it == 'function');
+}
+function isFunction(it){
+  return typeof it == 'function';
+}
+function assertDefined(it){
+  if(it == undefined)throw TypeError("Can't call method on  " + it);
+  return it;
+}
+
+var $ = module.exports = require('./$.fw')({
+  g: global,
+  core: core,
+  html: global.document && document.documentElement,
+  // http://jsperf.com/core-js-isobject
+  isObject:   isObject,
+  isFunction: isFunction,
+  it: function(it){
+    return it;
+  },
+  that: function(){
+    return this;
+  },
+  // 7.1.4 ToInteger
+  toInteger: toInteger,
+  // 7.1.15 ToLength
+  toLength: function(it){
+    return it > 0 ? min(toInteger(it), 0x1fffffffffffff) : 0; // pow(2, 53) - 1 == 9007199254740991
+  },
+  toIndex: function(index, length){
+    index = toInteger(index);
+    return index < 0 ? max(index + length, 0) : min(index, length);
+  },
+  has: function(it, key){
+    return hasOwnProperty.call(it, key);
+  },
+  create:     Object.create,
+  getProto:   Object.getPrototypeOf,
+  DESC:       DESC,
+  desc:       desc,
+  getDesc:    Object.getOwnPropertyDescriptor,
+  setDesc:    defineProperty,
+  getKeys:    Object.keys,
+  getNames:   Object.getOwnPropertyNames,
+  getSymbols: Object.getOwnPropertySymbols,
+  // Dummy, fix for not array-like ES3 string in es5 module
+  assertDefined: assertDefined,
+  ES5Object: Object,
+  toObject: function(it){
+    return $.ES5Object(assertDefined(it));
+  },
+  hide: hide,
+  def: createDefiner(0),
+  set: global.Symbol ? simpleSet : hide,
+  mix: function(target, src){
+    for(var key in src)hide(target, key, src[key]);
+    return target;
+  },
+  each: [].forEach
+});
+if(typeof __e != 'undefined')__e = core;
+if(typeof __g != 'undefined')__g = global;
+},{"./$.fw":28}],32:[function(require,module,exports){
+var $ = require('./$');
+module.exports = function(object, el){
+  var O      = $.toObject(object)
+    , keys   = $.getKeys(O)
+    , length = keys.length
+    , index  = 0
+    , key;
+  while(length > index)if(O[key = keys[index++]] === el)return key;
+};
+},{"./$":31}],33:[function(require,module,exports){
+var $            = require('./$')
+  , assertObject = require('./$.assert').obj;
+module.exports = function(it){
+  assertObject(it);
+  return $.getSymbols ? $.getNames(it).concat($.getSymbols(it)) : $.getNames(it);
+};
+},{"./$":31,"./$.assert":20}],34:[function(require,module,exports){
+'use strict';
+var $      = require('./$')
+  , invoke = require('./$.invoke')
+  , assertFunction = require('./$.assert').fn;
+module.exports = function(/* ...pargs */){
+  var fn     = assertFunction(this)
+    , length = arguments.length
+    , pargs  = Array(length)
+    , i      = 0
+    , _      = $.path._
+    , holder = false;
+  while(length > i)if((pargs[i] = arguments[i++]) === _)holder = true;
+  return function(/* ...args */){
+    var that    = this
+      , _length = arguments.length
+      , j = 0, k = 0, args;
+    if(!holder && !_length)return invoke(fn, pargs, that);
+    args = pargs.slice();
+    if(holder)for(;length > j; j++)if(args[j] === _)args[j] = arguments[k++];
+    while(_length > k)args.push(arguments[k++]);
+    return invoke(fn, args, that);
+  };
+};
+},{"./$":31,"./$.assert":20,"./$.invoke":29}],35:[function(require,module,exports){
+'use strict';
+module.exports = function(regExp, replace, isStatic){
+  var replacer = replace === Object(replace) ? function(part){
+    return replace[part];
+  } : replace;
+  return function(it){
+    return String(isStatic ? it : this).replace(regExp, replacer);
+  };
+};
+},{}],36:[function(require,module,exports){
+// Works with __proto__ only. Old v8 can't works with null proto objects.
+/*eslint-disable no-proto */
+var $      = require('./$')
+  , assert = require('./$.assert');
+module.exports = Object.setPrototypeOf || ('__proto__' in {} // eslint-disable-line
+  ? function(buggy, set){
+      try {
+        set = require('./$.ctx')(Function.call, $.getDesc(Object.prototype, '__proto__').set, 2);
+        set({}, []);
+      } catch(e){ buggy = true; }
+      return function(O, proto){
+        assert.obj(O);
+        assert(proto === null || $.isObject(proto), proto, ": can't set as prototype!");
+        if(buggy)O.__proto__ = proto;
+        else set(O, proto);
+        return O;
+      };
+    }()
+  : undefined);
+},{"./$":31,"./$.assert":20,"./$.ctx":26}],37:[function(require,module,exports){
+var $ = require('./$');
+module.exports = function(C){
+  if($.DESC && $.FW)$.setDesc(C, require('./$.wks')('species'), {
+    configurable: true,
+    get: $.that
+  });
+};
+},{"./$":31,"./$.wks":42}],38:[function(require,module,exports){
+'use strict';
+// true  -> String#at
+// false -> String#codePointAt
+var $ = require('./$');
+module.exports = function(TO_STRING){
+  return function(pos){
+    var s = String($.assertDefined(this))
+      , i = $.toInteger(pos)
+      , l = s.length
+      , a, b;
+    if(i < 0 || i >= l)return TO_STRING ? '' : undefined;
+    a = s.charCodeAt(i);
+    return a < 0xd800 || a > 0xdbff || i + 1 === l
+      || (b = s.charCodeAt(i + 1)) < 0xdc00 || b > 0xdfff
+        ? TO_STRING ? s.charAt(i) : a
+        : TO_STRING ? s.slice(i, i + 2) : (a - 0xd800 << 10) + (b - 0xdc00) + 0x10000;
+  };
+};
+},{"./$":31}],39:[function(require,module,exports){
+'use strict';
+var $      = require('./$')
+  , ctx    = require('./$.ctx')
+  , cof    = require('./$.cof')
+  , invoke = require('./$.invoke')
+  , global             = $.g
+  , isFunction         = $.isFunction
+  , setTask            = global.setImmediate
+  , clearTask          = global.clearImmediate
+  , postMessage        = global.postMessage
+  , addEventListener   = global.addEventListener
+  , MessageChannel     = global.MessageChannel
+  , counter            = 0
+  , queue              = {}
+  , ONREADYSTATECHANGE = 'onreadystatechange'
+  , defer, channel, port;
+function run(){
+  var id = +this;
+  if($.has(queue, id)){
+    var fn = queue[id];
+    delete queue[id];
+    fn();
+  }
+}
+function listner(event){
+  run.call(event.data);
+}
+// Node.js 0.9+ & IE10+ has setImmediate, otherwise:
+if(!isFunction(setTask) || !isFunction(clearTask)){
+  setTask = function(fn){
+    var args = [], i = 1;
+    while(arguments.length > i)args.push(arguments[i++]);
+    queue[++counter] = function(){
+      invoke(isFunction(fn) ? fn : Function(fn), args);
+    };
+    defer(counter);
+    return counter;
+  };
+  clearTask = function(id){
+    delete queue[id];
+  };
+  // Node.js 0.8-
+  if(cof(global.process) == 'process'){
+    defer = function(id){
+      global.process.nextTick(ctx(run, id, 1));
+    };
+  // Modern browsers, skip implementation for WebWorkers
+  // IE8 has postMessage, but it's sync & typeof its postMessage is object
+  } else if(addEventListener && isFunction(postMessage) && !$.g.importScripts){
+    defer = function(id){
+      postMessage(id, '*');
+    };
+    addEventListener('message', listner, false);
+  // WebWorkers
+  } else if(isFunction(MessageChannel)){
+    channel = new MessageChannel;
+    port    = channel.port2;
+    channel.port1.onmessage = listner;
+    defer = ctx(port.postMessage, port, 1);
+  // IE8-
+  } else if($.g.document && ONREADYSTATECHANGE in document.createElement('script')){
+    defer = function(id){
+      $.html.appendChild(document.createElement('script'))[ONREADYSTATECHANGE] = function(){
+        $.html.removeChild(this);
+        run.call(id);
+      };
+    };
+  // Rest old browsers
+  } else {
+    defer = function(id){
+      setTimeout(ctx(run, id, 1), 0);
+    };
+  }
+}
+module.exports = {
+  set:   setTask,
+  clear: clearTask
+};
+},{"./$":31,"./$.cof":22,"./$.ctx":26,"./$.invoke":29}],40:[function(require,module,exports){
+var sid = 0;
+function uid(key){
+  return 'Symbol(' + key + ')_' + (++sid + Math.random()).toString(36);
+}
+uid.safe = require('./$').g.Symbol || uid;
+module.exports = uid;
+},{"./$":31}],41:[function(require,module,exports){
+// 22.1.3.31 Array.prototype[@@unscopables]
+var $           = require('./$')
+  , UNSCOPABLES = require('./$.wks')('unscopables');
+if($.FW && !(UNSCOPABLES in []))$.hide(Array.prototype, UNSCOPABLES, {});
+module.exports = function(key){
+  if($.FW)[][UNSCOPABLES][key] = true;
+};
+},{"./$":31,"./$.wks":42}],42:[function(require,module,exports){
+var global = require('./$').g
+  , store  = {};
+module.exports = function(name){
+  return store[name] || (store[name] =
+    global.Symbol && global.Symbol[name] || require('./$.uid').safe('Symbol.' + name));
+};
+},{"./$":31,"./$.uid":40}],43:[function(require,module,exports){
+var $                = require('./$')
+  , cof              = require('./$.cof')
+  , $def             = require('./$.def')
+  , invoke           = require('./$.invoke')
+  , arrayMethod      = require('./$.array-methods')
+  , IE_PROTO         = require('./$.uid').safe('__proto__')
+  , assert           = require('./$.assert')
+  , assertObject     = assert.obj
+  , ObjectProto      = Object.prototype
+  , A                = []
+  , slice            = A.slice
+  , indexOf          = A.indexOf
+  , classof          = cof.classof
+  , defineProperties = Object.defineProperties
+  , has              = $.has
+  , defineProperty   = $.setDesc
+  , getOwnDescriptor = $.getDesc
+  , isFunction       = $.isFunction
+  , toObject         = $.toObject
+  , toLength         = $.toLength
+  , IE8_DOM_DEFINE   = false;
+
+if(!$.DESC){
+  try {
+    IE8_DOM_DEFINE = defineProperty(document.createElement('div'), 'x',
+      {get: function(){ return 8; }}
+    ).x == 8;
+  } catch(e){ /* empty */ }
+  $.setDesc = function(O, P, Attributes){
+    if(IE8_DOM_DEFINE)try {
+      return defineProperty(O, P, Attributes);
+    } catch(e){ /* empty */ }
+    if('get' in Attributes || 'set' in Attributes)throw TypeError('Accessors not supported!');
+    if('value' in Attributes)assertObject(O)[P] = Attributes.value;
+    return O;
+  };
+  $.getDesc = function(O, P){
+    if(IE8_DOM_DEFINE)try {
+      return getOwnDescriptor(O, P);
+    } catch(e){ /* empty */ }
+    if(has(O, P))return $.desc(!ObjectProto.propertyIsEnumerable.call(O, P), O[P]);
+  };
+  defineProperties = function(O, Properties){
+    assertObject(O);
+    var keys   = $.getKeys(Properties)
+      , length = keys.length
+      , i = 0
+      , P;
+    while(length > i)$.setDesc(O, P = keys[i++], Properties[P]);
+    return O;
+  };
+}
+$def($def.S + $def.F * !$.DESC, 'Object', {
+  // 19.1.2.6 / 15.2.3.3 Object.getOwnPropertyDescriptor(O, P)
+  getOwnPropertyDescriptor: $.getDesc,
+  // 19.1.2.4 / 15.2.3.6 Object.defineProperty(O, P, Attributes)
+  defineProperty: $.setDesc,
+  // 19.1.2.3 / 15.2.3.7 Object.defineProperties(O, Properties)
+  defineProperties: defineProperties
+});
+
+  // IE 8- don't enum bug keys
+var keys1 = ('constructor,hasOwnProperty,isPrototypeOf,propertyIsEnumerable,' +
+            'toLocaleString,toString,valueOf').split(',')
+  // Additional keys for getOwnPropertyNames
+  , keys2 = keys1.concat('length', 'prototype')
+  , keysLen1 = keys1.length;
+
+// Create object with `null` prototype: use iframe Object with cleared prototype
+var createDict = function(){
+  // Thrash, waste and sodomy: IE GC bug
+  var iframe = document.createElement('iframe')
+    , i      = keysLen1
+    , iframeDocument;
+  iframe.style.display = 'none';
+  $.html.appendChild(iframe);
+  iframe.src = 'javascript:'; // eslint-disable-line no-script-url
+  // createDict = iframe.contentWindow.Object;
+  // html.removeChild(iframe);
+  iframeDocument = iframe.contentWindow.document;
+  iframeDocument.open();
+  iframeDocument.write('<script>document.F=Object</script>');
+  iframeDocument.close();
+  createDict = iframeDocument.F;
+  while(i--)delete createDict.prototype[keys1[i]];
+  return createDict();
+};
+function createGetKeys(names, length){
+  return function(object){
+    var O      = toObject(object)
+      , i      = 0
+      , result = []
+      , key;
+    for(key in O)if(key != IE_PROTO)has(O, key) && result.push(key);
+    // Don't enum bug & hidden keys
+    while(length > i)if(has(O, key = names[i++])){
+      ~indexOf.call(result, key) || result.push(key);
+    }
+    return result;
+  };
+}
+function isPrimitive(it){ return !$.isObject(it); }
+function Empty(){}
+$def($def.S, 'Object', {
+  // 19.1.2.9 / 15.2.3.2 Object.getPrototypeOf(O)
+  getPrototypeOf: $.getProto = $.getProto || function(O){
+    O = Object(assert.def(O));
+    if(has(O, IE_PROTO))return O[IE_PROTO];
+    if(isFunction(O.constructor) && O instanceof O.constructor){
+      return O.constructor.prototype;
+    } return O instanceof Object ? ObjectProto : null;
+  },
+  // 19.1.2.7 / 15.2.3.4 Object.getOwnPropertyNames(O)
+  getOwnPropertyNames: $.getNames = $.getNames || createGetKeys(keys2, keys2.length, true),
+  // 19.1.2.2 / 15.2.3.5 Object.create(O [, Properties])
+  create: $.create = $.create || function(O, /*?*/Properties){
+    var result;
+    if(O !== null){
+      Empty.prototype = assertObject(O);
+      result = new Empty();
+      Empty.prototype = null;
+      // add "__proto__" for Object.getPrototypeOf shim
+      result[IE_PROTO] = O;
+    } else result = createDict();
+    return Properties === undefined ? result : defineProperties(result, Properties);
+  },
+  // 19.1.2.14 / 15.2.3.14 Object.keys(O)
+  keys: $.getKeys = $.getKeys || createGetKeys(keys1, keysLen1, false),
+  // 19.1.2.17 / 15.2.3.8 Object.seal(O)
+  seal: $.it, // <- cap
+  // 19.1.2.5 / 15.2.3.9 Object.freeze(O)
+  freeze: $.it, // <- cap
+  // 19.1.2.15 / 15.2.3.10 Object.preventExtensions(O)
+  preventExtensions: $.it, // <- cap
+  // 19.1.2.13 / 15.2.3.11 Object.isSealed(O)
+  isSealed: isPrimitive, // <- cap
+  // 19.1.2.12 / 15.2.3.12 Object.isFrozen(O)
+  isFrozen: isPrimitive, // <- cap
+  // 19.1.2.11 / 15.2.3.13 Object.isExtensible(O)
+  isExtensible: $.isObject // <- cap
+});
+
+// 19.2.3.2 / 15.3.4.5 Function.prototype.bind(thisArg, args...)
+$def($def.P, 'Function', {
+  bind: function(that /*, args... */){
+    var fn       = assert.fn(this)
+      , partArgs = slice.call(arguments, 1);
+    function bound(/* args... */){
+      var args = partArgs.concat(slice.call(arguments));
+      return invoke(fn, args, this instanceof bound ? $.create(fn.prototype) : that);
+    }
+    if(fn.prototype)bound.prototype = fn.prototype;
+    return bound;
+  }
+});
+
+// Fix for not array-like ES3 string
+function arrayMethodFix(fn){
+  return function(){
+    return fn.apply($.ES5Object(this), arguments);
+  };
+}
+if(!(0 in Object('z') && 'z'[0] == 'z')){
+  $.ES5Object = function(it){
+    return cof(it) == 'String' ? it.split('') : Object(it);
+  };
+}
+$def($def.P + $def.F * ($.ES5Object != Object), 'Array', {
+  slice: arrayMethodFix(slice),
+  join: arrayMethodFix(A.join)
+});
+
+// 22.1.2.2 / 15.4.3.2 Array.isArray(arg)
+$def($def.S, 'Array', {
+  isArray: function(arg){
+    return cof(arg) == 'Array';
+  }
+});
+function createArrayReduce(isRight){
+  return function(callbackfn, memo){
+    assert.fn(callbackfn);
+    var O      = toObject(this)
+      , length = toLength(O.length)
+      , index  = isRight ? length - 1 : 0
+      , i      = isRight ? -1 : 1;
+    if(arguments.length < 2)for(;;){
+      if(index in O){
+        memo = O[index];
+        index += i;
+        break;
+      }
+      index += i;
+      assert(isRight ? index >= 0 : length > index, 'Reduce of empty array with no initial value');
+    }
+    for(;isRight ? index >= 0 : length > index; index += i)if(index in O){
+      memo = callbackfn(memo, O[index], index, this);
+    }
+    return memo;
+  };
+}
+$def($def.P, 'Array', {
+  // 22.1.3.10 / 15.4.4.18 Array.prototype.forEach(callbackfn [, thisArg])
+  forEach: $.each = $.each || arrayMethod(0),
+  // 22.1.3.15 / 15.4.4.19 Array.prototype.map(callbackfn [, thisArg])
+  map: arrayMethod(1),
+  // 22.1.3.7 / 15.4.4.20 Array.prototype.filter(callbackfn [, thisArg])
+  filter: arrayMethod(2),
+  // 22.1.3.23 / 15.4.4.17 Array.prototype.some(callbackfn [, thisArg])
+  some: arrayMethod(3),
+  // 22.1.3.5 / 15.4.4.16 Array.prototype.every(callbackfn [, thisArg])
+  every: arrayMethod(4),
+  // 22.1.3.18 / 15.4.4.21 Array.prototype.reduce(callbackfn [, initialValue])
+  reduce: createArrayReduce(false),
+  // 22.1.3.19 / 15.4.4.22 Array.prototype.reduceRight(callbackfn [, initialValue])
+  reduceRight: createArrayReduce(true),
+  // 22.1.3.11 / 15.4.4.14 Array.prototype.indexOf(searchElement [, fromIndex])
+  indexOf: indexOf = indexOf || require('./$.array-includes')(false),
+  // 22.1.3.14 / 15.4.4.15 Array.prototype.lastIndexOf(searchElement [, fromIndex])
+  lastIndexOf: function(el, fromIndex /* = @[*-1] */){
+    var O      = toObject(this)
+      , length = toLength(O.length)
+      , index  = length - 1;
+    if(arguments.length > 1)index = Math.min(index, $.toInteger(fromIndex));
+    if(index < 0)index = toLength(length + index);
+    for(;index >= 0; index--)if(index in O)if(O[index] === el)return index;
+    return -1;
+  }
+});
+
+// 21.1.3.25 / 15.5.4.20 String.prototype.trim()
+$def($def.P, 'String', {trim: require('./$.replacer')(/^\s*([\s\S]*\S)?\s*$/, '$1')});
+
+// 20.3.3.1 / 15.9.4.4 Date.now()
+$def($def.S, 'Date', {now: function(){
+  return +new Date;
+}});
+
+function lz(num){
+  return num > 9 ? num : '0' + num;
+}
+// 20.3.4.36 / 15.9.5.43 Date.prototype.toISOString()
+$def($def.P, 'Date', {toISOString: function(){
+  if(!isFinite(this))throw RangeError('Invalid time value');
+  var d = this
+    , y = d.getUTCFullYear()
+    , m = d.getUTCMilliseconds()
+    , s = y < 0 ? '-' : y > 9999 ? '+' : '';
+  return s + ('00000' + Math.abs(y)).slice(s ? -6 : -4) +
+    '-' + lz(d.getUTCMonth() + 1) + '-' + lz(d.getUTCDate()) +
+    'T' + lz(d.getUTCHours()) + ':' + lz(d.getUTCMinutes()) +
+    ':' + lz(d.getUTCSeconds()) + '.' + (m > 99 ? m : '0' + lz(m)) + 'Z';
+}});
+
+if(classof(function(){ return arguments; }()) == 'Object')cof.classof = function(it){
+  var tag = classof(it);
+  return tag == 'Object' && isFunction(it.callee) ? 'Arguments' : tag;
+};
+},{"./$":31,"./$.array-includes":18,"./$.array-methods":19,"./$.assert":20,"./$.cof":22,"./$.def":27,"./$.invoke":29,"./$.replacer":35,"./$.uid":40}],44:[function(require,module,exports){
+'use strict';
+var $       = require('./$')
+  , $def    = require('./$.def')
+  , toIndex = $.toIndex;
+$def($def.P, 'Array', {
+  // 22.1.3.3 Array.prototype.copyWithin(target, start, end = this.length)
+  copyWithin: function(target/* = 0 */, start /* = 0, end = @length */){
+    var O     = Object($.assertDefined(this))
+      , len   = $.toLength(O.length)
+      , to    = toIndex(target, len)
+      , from  = toIndex(start, len)
+      , end   = arguments[2]
+      , fin   = end === undefined ? len : toIndex(end, len)
+      , count = Math.min(fin - from, len - to)
+      , inc   = 1;
+    if(from < to && to < from + count){
+      inc  = -1;
+      from = from + count - 1;
+      to   = to   + count - 1;
+    }
+    while(count-- > 0){
+      if(from in O)O[to] = O[from];
+      else delete O[to];
+      to   += inc;
+      from += inc;
+    } return O;
+  }
+});
+require('./$.unscope')('copyWithin');
+},{"./$":31,"./$.def":27,"./$.unscope":41}],45:[function(require,module,exports){
+'use strict';
+var $       = require('./$')
+  , $def    = require('./$.def')
+  , toIndex = $.toIndex;
+$def($def.P, 'Array', {
+  // 22.1.3.6 Array.prototype.fill(value, start = 0, end = this.length)
+  fill: function(value /*, start = 0, end = @length */){
+    var O      = Object($.assertDefined(this))
+      , length = $.toLength(O.length)
+      , index  = toIndex(arguments[1], length)
+      , end    = arguments[2]
+      , endPos = end === undefined ? length : toIndex(end, length);
+    while(endPos > index)O[index++] = value;
+    return O;
+  }
+});
+require('./$.unscope')('fill');
+},{"./$":31,"./$.def":27,"./$.unscope":41}],46:[function(require,module,exports){
+var $def = require('./$.def');
+$def($def.P, 'Array', {
+  // 22.1.3.9 Array.prototype.findIndex(predicate, thisArg = undefined)
+  findIndex: require('./$.array-methods')(6)
+});
+require('./$.unscope')('findIndex');
+},{"./$.array-methods":19,"./$.def":27,"./$.unscope":41}],47:[function(require,module,exports){
+var $def = require('./$.def');
+$def($def.P, 'Array', {
+  // 22.1.3.8 Array.prototype.find(predicate, thisArg = undefined)
+  find: require('./$.array-methods')(5)
+});
+require('./$.unscope')('find');
+},{"./$.array-methods":19,"./$.def":27,"./$.unscope":41}],48:[function(require,module,exports){
+var $     = require('./$')
+  , ctx   = require('./$.ctx')
+  , $def  = require('./$.def')
+  , $iter = require('./$.iter')
+  , stepCall = $iter.stepCall;
+$def($def.S + $def.F * $iter.DANGER_CLOSING, 'Array', {
+  // 22.1.2.1 Array.from(arrayLike, mapfn = undefined, thisArg = undefined)
+  from: function(arrayLike/*, mapfn = undefined, thisArg = undefined*/){
+    var O       = Object($.assertDefined(arrayLike))
+      , mapfn   = arguments[1]
+      , mapping = mapfn !== undefined
+      , f       = mapping ? ctx(mapfn, arguments[2], 2) : undefined
+      , index   = 0
+      , length, result, step, iterator;
+    if($iter.is(O)){
+      iterator = $iter.get(O);
+      // strange IE quirks mode bug -> use typeof instead of isFunction
+      result   = new (typeof this == 'function' ? this : Array);
+      for(; !(step = iterator.next()).done; index++){
+        result[index] = mapping ? stepCall(iterator, f, [step.value, index], true) : step.value;
+      }
+    } else {
+      // strange IE quirks mode bug -> use typeof instead of isFunction
+      result = new (typeof this == 'function' ? this : Array)(length = $.toLength(O.length));
+      for(; length > index; index++){
+        result[index] = mapping ? f(O[index], index) : O[index];
+      }
+    }
+    result.length = index;
+    return result;
+  }
+});
+},{"./$":31,"./$.ctx":26,"./$.def":27,"./$.iter":30}],49:[function(require,module,exports){
+var $          = require('./$')
+  , setUnscope = require('./$.unscope')
+  , ITER       = require('./$.uid').safe('iter')
+  , $iter      = require('./$.iter')
+  , step       = $iter.step
+  , Iterators  = $iter.Iterators;
+
+// 22.1.3.4 Array.prototype.entries()
+// 22.1.3.13 Array.prototype.keys()
+// 22.1.3.29 Array.prototype.values()
+// 22.1.3.30 Array.prototype[@@iterator]()
+$iter.std(Array, 'Array', function(iterated, kind){
+  $.set(this, ITER, {o: $.toObject(iterated), i: 0, k: kind});
+// 22.1.5.2.1 %ArrayIteratorPrototype%.next()
+}, function(){
+  var iter  = this[ITER]
+    , O     = iter.o
+    , kind  = iter.k
+    , index = iter.i++;
+  if(!O || index >= O.length){
+    iter.o = undefined;
+    return step(1);
+  }
+  if(kind == 'key'  )return step(0, index);
+  if(kind == 'value')return step(0, O[index]);
+  return step(0, [index, O[index]]);
+}, 'value');
+
+// argumentsList[@@iterator] is %ArrayProto_values% (9.4.4.6, 9.4.4.7)
+Iterators.Arguments = Iterators.Array;
+
+setUnscope('keys');
+setUnscope('values');
+setUnscope('entries');
+},{"./$":31,"./$.iter":30,"./$.uid":40,"./$.unscope":41}],50:[function(require,module,exports){
+var $def = require('./$.def');
+$def($def.S, 'Array', {
+  // 22.1.2.3 Array.of( ...items)
+  of: function(/* ...args */){
+    var index  = 0
+      , length = arguments.length
+      // strange IE quirks mode bug -> use typeof instead of isFunction
+      , result = new (typeof this == 'function' ? this : Array)(length);
+    while(length > index)result[index] = arguments[index++];
+    result.length = length;
+    return result;
+  }
+});
+},{"./$.def":27}],51:[function(require,module,exports){
+require('./$.species')(Array);
+},{"./$.species":37}],52:[function(require,module,exports){
+'use strict';
+var $    = require('./$')
+  , NAME = 'name'
+  , setDesc = $.setDesc
+  , FunctionProto = Function.prototype;
+// 19.2.4.2 name
+NAME in FunctionProto || $.FW && $.DESC && setDesc(FunctionProto, NAME, {
+  configurable: true,
+  get: function(){
+    var match = String(this).match(/^\s*function ([^ (]*)/)
+      , name  = match ? match[1] : '';
+    $.has(this, NAME) || setDesc(this, NAME, $.desc(5, name));
+    return name;
+  },
+  set: function(value){
+    $.has(this, NAME) || setDesc(this, NAME, $.desc(0, value));
+  }
+});
+},{"./$":31}],53:[function(require,module,exports){
+'use strict';
+var strong = require('./$.collection-strong');
+
+// 23.1 Map Objects
+require('./$.collection')('Map', {
+  // 23.1.3.6 Map.prototype.get(key)
+  get: function(key){
+    var entry = strong.getEntry(this, key);
+    return entry && entry.v;
+  },
+  // 23.1.3.9 Map.prototype.set(key, value)
+  set: function(key, value){
+    return strong.def(this, key === 0 ? 0 : key, value);
+  }
+}, strong, true);
+},{"./$.collection":25,"./$.collection-strong":23}],54:[function(require,module,exports){
+var Infinity = 1 / 0
+  , $def  = require('./$.def')
+  , E     = Math.E
+  , pow   = Math.pow
+  , abs   = Math.abs
+  , exp   = Math.exp
+  , log   = Math.log
+  , sqrt  = Math.sqrt
+  , ceil  = Math.ceil
+  , floor = Math.floor
+  , sign  = Math.sign || function(x){
+      return (x = +x) == 0 || x != x ? x : x < 0 ? -1 : 1;
+    };
+
+// 20.2.2.5 Math.asinh(x)
+function asinh(x){
+  return !isFinite(x = +x) || x == 0 ? x : x < 0 ? -asinh(-x) : log(x + sqrt(x * x + 1));
+}
+// 20.2.2.14 Math.expm1(x)
+function expm1(x){
+  return (x = +x) == 0 ? x : x > -1e-6 && x < 1e-6 ? x + x * x / 2 : exp(x) - 1;
+}
+
+$def($def.S, 'Math', {
+  // 20.2.2.3 Math.acosh(x)
+  acosh: function(x){
+    return (x = +x) < 1 ? NaN : isFinite(x) ? log(x / E + sqrt(x + 1) * sqrt(x - 1) / E) + 1 : x;
+  },
+  // 20.2.2.5 Math.asinh(x)
+  asinh: asinh,
+  // 20.2.2.7 Math.atanh(x)
+  atanh: function(x){
+    return (x = +x) == 0 ? x : log((1 + x) / (1 - x)) / 2;
+  },
+  // 20.2.2.9 Math.cbrt(x)
+  cbrt: function(x){
+    return sign(x = +x) * pow(abs(x), 1 / 3);
+  },
+  // 20.2.2.11 Math.clz32(x)
+  clz32: function(x){
+    return (x >>>= 0) ? 32 - x.toString(2).length : 32;
+  },
+  // 20.2.2.12 Math.cosh(x)
+  cosh: function(x){
+    return (exp(x = +x) + exp(-x)) / 2;
+  },
+  // 20.2.2.14 Math.expm1(x)
+  expm1: expm1,
+  // 20.2.2.16 Math.fround(x)
+  // TODO: fallback for IE9-
+  fround: function(x){
+    return new Float32Array([x])[0];
+  },
+  // 20.2.2.17 Math.hypot([value1[, value2[, … ]]])
+  hypot: function(value1, value2){ // eslint-disable-line no-unused-vars
+    var sum  = 0
+      , len1 = arguments.length
+      , len2 = len1
+      , args = Array(len1)
+      , larg = -Infinity
+      , arg;
+    while(len1--){
+      arg = args[len1] = +arguments[len1];
+      if(arg == Infinity || arg == -Infinity)return Infinity;
+      if(arg > larg)larg = arg;
+    }
+    larg = arg || 1;
+    while(len2--)sum += pow(args[len2] / larg, 2);
+    return larg * sqrt(sum);
+  },
+  // 20.2.2.18 Math.imul(x, y)
+  imul: function(x, y){
+    var UInt16 = 0xffff
+      , xn = +x
+      , yn = +y
+      , xl = UInt16 & xn
+      , yl = UInt16 & yn;
+    return 0 | xl * yl + ((UInt16 & xn >>> 16) * yl + xl * (UInt16 & yn >>> 16) << 16 >>> 0);
+  },
+  // 20.2.2.20 Math.log1p(x)
+  log1p: function(x){
+    return (x = +x) > -1e-8 && x < 1e-8 ? x - x * x / 2 : log(1 + x);
+  },
+  // 20.2.2.21 Math.log10(x)
+  log10: function(x){
+    return log(x) / Math.LN10;
+  },
+  // 20.2.2.22 Math.log2(x)
+  log2: function(x){
+    return log(x) / Math.LN2;
+  },
+  // 20.2.2.28 Math.sign(x)
+  sign: sign,
+  // 20.2.2.30 Math.sinh(x)
+  sinh: function(x){
+    return abs(x = +x) < 1 ? (expm1(x) - expm1(-x)) / 2 : (exp(x - 1) - exp(-x - 1)) * (E / 2);
+  },
+  // 20.2.2.33 Math.tanh(x)
+  tanh: function(x){
+    var a = expm1(x = +x)
+      , b = expm1(-x);
+    return a == Infinity ? 1 : b == Infinity ? -1 : (a - b) / (exp(x) + exp(-x));
+  },
+  // 20.2.2.34 Math.trunc(x)
+  trunc: function(it){
+    return (it > 0 ? floor : ceil)(it);
+  }
+});
+},{"./$.def":27}],55:[function(require,module,exports){
+'use strict';
+var $          = require('./$')
+  , isObject   = $.isObject
+  , isFunction = $.isFunction
+  , NUMBER     = 'Number'
+  , Number     = $.g[NUMBER]
+  , Base       = Number
+  , proto      = Number.prototype;
+function toPrimitive(it){
+  var fn, val;
+  if(isFunction(fn = it.valueOf) && !isObject(val = fn.call(it)))return val;
+  if(isFunction(fn = it.toString) && !isObject(val = fn.call(it)))return val;
+  throw TypeError("Can't convert object to number");
+}
+function toNumber(it){
+  if(isObject(it))it = toPrimitive(it);
+  if(typeof it == 'string' && it.length > 2 && it.charCodeAt(0) == 48){
+    var binary = false;
+    switch(it.charCodeAt(1)){
+      case 66 : case 98  : binary = true;
+      case 79 : case 111 : return parseInt(it.slice(2), binary ? 2 : 8);
+    }
+  } return +it;
+}
+if($.FW && !(Number('0o1') && Number('0b1'))){
+  Number = function Number(it){
+    return this instanceof Number ? new Base(toNumber(it)) : toNumber(it);
+  };
+  $.each.call($.DESC ? $.getNames(Base) : (
+      // ES3:
+      'MAX_VALUE,MIN_VALUE,NaN,NEGATIVE_INFINITY,POSITIVE_INFINITY,' +
+      // ES6 (in case, if modules with ES6 Number statics required before):
+      'EPSILON,isFinite,isInteger,isNaN,isSafeInteger,MAX_SAFE_INTEGER,' +
+      'MIN_SAFE_INTEGER,parseFloat,parseInt,isInteger'
+    ).split(','), function(key){
+      if($.has(Base, key) && !$.has(Number, key)){
+        $.setDesc(Number, key, $.getDesc(Base, key));
+      }
+    }
+  );
+  Number.prototype = proto;
+  proto.constructor = Number;
+  $.hide($.g, NUMBER, Number);
+}
+},{"./$":31}],56:[function(require,module,exports){
+var $     = require('./$')
+  , $def  = require('./$.def')
+  , abs   = Math.abs
+  , floor = Math.floor
+  , MAX_SAFE_INTEGER = 0x1fffffffffffff; // pow(2, 53) - 1 == 9007199254740991;
+function isInteger(it){
+  return !$.isObject(it) && isFinite(it) && floor(it) === it;
+}
+$def($def.S, 'Number', {
+  // 20.1.2.1 Number.EPSILON
+  EPSILON: Math.pow(2, -52),
+  // 20.1.2.2 Number.isFinite(number)
+  isFinite: function(it){
+    return typeof it == 'number' && isFinite(it);
+  },
+  // 20.1.2.3 Number.isInteger(number)
+  isInteger: isInteger,
+  // 20.1.2.4 Number.isNaN(number)
+  isNaN: function(number){
+    return number != number;
+  },
+  // 20.1.2.5 Number.isSafeInteger(number)
+  isSafeInteger: function(number){
+    return isInteger(number) && abs(number) <= MAX_SAFE_INTEGER;
+  },
+  // 20.1.2.6 Number.MAX_SAFE_INTEGER
+  MAX_SAFE_INTEGER: MAX_SAFE_INTEGER,
+  // 20.1.2.10 Number.MIN_SAFE_INTEGER
+  MIN_SAFE_INTEGER: -MAX_SAFE_INTEGER,
+  // 20.1.2.12 Number.parseFloat(string)
+  parseFloat: parseFloat,
+  // 20.1.2.13 Number.parseInt(string, radix)
+  parseInt: parseInt
+});
+},{"./$":31,"./$.def":27}],57:[function(require,module,exports){
+// 19.1.3.1 Object.assign(target, source)
+var $def = require('./$.def');
+$def($def.S, 'Object', {assign: require('./$.assign')});
+},{"./$.assign":21,"./$.def":27}],58:[function(require,module,exports){
+// 19.1.3.10 Object.is(value1, value2)
+var $def = require('./$.def');
+$def($def.S, 'Object', {
+  is: function(x, y){
+    return x === y ? x !== 0 || 1 / x === 1 / y : x != x && y != y;
+  }
+});
+},{"./$.def":27}],59:[function(require,module,exports){
+// 19.1.3.19 Object.setPrototypeOf(O, proto)
+var $def = require('./$.def');
+$def($def.S, 'Object', {setPrototypeOf: require('./$.set-proto')});
+},{"./$.def":27,"./$.set-proto":36}],60:[function(require,module,exports){
+var $        = require('./$')
+  , $def     = require('./$.def')
+  , isObject = $.isObject
+  , toObject = $.toObject;
+function wrapObjectMethod(METHOD, MODE){
+  var fn  = ($.core.Object || {})[METHOD] || Object[METHOD]
+    , f   = 0
+    , o   = {};
+  o[METHOD] = MODE == 1 ? function(it){
+    return isObject(it) ? fn(it) : it;
+  } : MODE == 2 ? function(it){
+    return isObject(it) ? fn(it) : true;
+  } : MODE == 3 ? function(it){
+    return isObject(it) ? fn(it) : false;
+  } : MODE == 4 ? function(it, key){
+    return fn(toObject(it), key);
+  } : MODE == 5 ? function(it){
+    return fn(Object($.assertDefined(it)));
+  } : function(it){
+    return fn(toObject(it));
+  };
+  try {
+    fn('z');
+  } catch(e){
+    f = 1;
+  }
+  $def($def.S + $def.F * f, 'Object', o);
+}
+wrapObjectMethod('freeze', 1);
+wrapObjectMethod('seal', 1);
+wrapObjectMethod('preventExtensions', 1);
+wrapObjectMethod('isFrozen', 2);
+wrapObjectMethod('isSealed', 2);
+wrapObjectMethod('isExtensible', 3);
+wrapObjectMethod('getOwnPropertyDescriptor', 4);
+wrapObjectMethod('getPrototypeOf', 5);
+wrapObjectMethod('keys');
+wrapObjectMethod('getOwnPropertyNames');
+},{"./$":31,"./$.def":27}],61:[function(require,module,exports){
+'use strict';
+// 19.1.3.6 Object.prototype.toString()
+var $   = require('./$')
+  , cof = require('./$.cof')
+  , tmp = {};
+tmp[require('./$.wks')('toStringTag')] = 'z';
+if($.FW && cof(tmp) != 'z')$.hide(Object.prototype, 'toString', function(){
+  return '[object ' + cof.classof(this) + ']';
+});
+},{"./$":31,"./$.cof":22,"./$.wks":42}],62:[function(require,module,exports){
+'use strict';
+var $       = require('./$')
+  , ctx     = require('./$.ctx')
+  , cof     = require('./$.cof')
+  , $def    = require('./$.def')
+  , assert  = require('./$.assert')
+  , $iter   = require('./$.iter')
+  , SPECIES = require('./$.wks')('species')
+  , RECORD  = require('./$.uid').safe('record')
+  , forOf   = $iter.forOf
+  , PROMISE = 'Promise'
+  , global  = $.g
+  , process = global.process
+  , asap    = process && process.nextTick || require('./$.task').set
+  , Promise = global[PROMISE]
+  , Base    = Promise
+  , isFunction     = $.isFunction
+  , isObject       = $.isObject
+  , assertFunction = assert.fn
+  , assertObject   = assert.obj
+  , test;
+function getConstructor(C){
+  var S = assertObject(C)[SPECIES];
+  return S != undefined ? S : C;
+}
+isFunction(Promise) && isFunction(Promise.resolve)
+&& Promise.resolve(test = new Promise(function(){})) == test
+|| function(){
+  function isThenable(it){
+    var then;
+    if(isObject(it))then = it.then;
+    return isFunction(then) ? then : false;
+  }
+  function handledRejectionOrHasOnRejected(promise){
+    var record = promise[RECORD]
+      , chain  = record.c
+      , i      = 0
+      , react;
+    if(record.h)return true;
+    while(chain.length > i){
+      react = chain[i++];
+      if(react.fail || handledRejectionOrHasOnRejected(react.P))return true;
+    }
+  }
+  function notify(record, isReject){
+    var chain = record.c;
+    if(isReject || chain.length)asap(function(){
+      var promise = record.p
+        , value   = record.v
+        , ok      = record.s == 1
+        , i       = 0;
+      if(isReject && !handledRejectionOrHasOnRejected(promise)){
+        setTimeout(function(){
+          if(!handledRejectionOrHasOnRejected(promise)){
+            if(cof(process) == 'process'){
+              process.emit('unhandledRejection', value, promise);
+            } else if(global.console && isFunction(console.error)){
+              console.error('Unhandled promise rejection', value);
+            }
+          }
+        }, 1e3);
+      } else while(chain.length > i)!function(react){
+        var cb = ok ? react.ok : react.fail
+          , ret, then;
+        try {
+          if(cb){
+            if(!ok)record.h = true;
+            ret = cb === true ? value : cb(value);
+            if(ret === react.P){
+              react.rej(TypeError(PROMISE + '-chain cycle'));
+            } else if(then = isThenable(ret)){
+              then.call(ret, react.res, react.rej);
+            } else react.res(ret);
+          } else react.rej(value);
+        } catch(err){
+          react.rej(err);
+        }
+      }(chain[i++]);
+      chain.length = 0;
+    });
+  }
+  function reject(value){
+    var record = this;
+    if(record.d)return;
+    record.d = true;
+    record = record.r || record; // unwrap
+    record.v = value;
+    record.s = 2;
+    notify(record, true);
+  }
+  function resolve(value){
+    var record = this
+      , then, wrapper;
+    if(record.d)return;
+    record.d = true;
+    record = record.r || record; // unwrap
+    try {
+      if(then = isThenable(value)){
+        wrapper = {r: record, d: false}; // wrap
+        then.call(value, ctx(resolve, wrapper, 1), ctx(reject, wrapper, 1));
+      } else {
+        record.v = value;
+        record.s = 1;
+        notify(record);
+      }
+    } catch(err){
+      reject.call(wrapper || {r: record, d: false}, err); // wrap
+    }
+  }
+  // 25.4.3.1 Promise(executor)
+  Promise = function(executor){
+    assertFunction(executor);
+    var record = {
+      p: assert.inst(this, Promise, PROMISE), // <- promise
+      c: [],                                  // <- chain
+      s: 0,                                   // <- state
+      d: false,                               // <- done
+      v: undefined,                           // <- value
+      h: false                                // <- handled rejection
+    };
+    $.hide(this, RECORD, record);
+    try {
+      executor(ctx(resolve, record, 1), ctx(reject, record, 1));
+    } catch(err){
+      reject.call(record, err);
+    }
+  };
+  $.mix(Promise.prototype, {
+    // 25.4.5.3 Promise.prototype.then(onFulfilled, onRejected)
+    then: function(onFulfilled, onRejected){
+      var S = assertObject(assertObject(this).constructor)[SPECIES];
+      var react = {
+        ok:   isFunction(onFulfilled) ? onFulfilled : true,
+        fail: isFunction(onRejected)  ? onRejected  : false
+      };
+      var P = react.P = new (S != undefined ? S : Promise)(function(res, rej){
+        react.res = assertFunction(res);
+        react.rej = assertFunction(rej);
+      });
+      var record = this[RECORD];
+      record.c.push(react);
+      record.s && notify(record);
+      return P;
+    },
+    // 25.4.5.1 Promise.prototype.catch(onRejected)
+    'catch': function(onRejected){
+      return this.then(undefined, onRejected);
+    }
+  });
+}();
+$def($def.G + $def.W + $def.F * (Promise != Base), {Promise: Promise});
+$def($def.S, PROMISE, {
+  // 25.4.4.5 Promise.reject(r)
+  reject: function(r){
+    return new (getConstructor(this))(function(res, rej){
+      rej(r);
+    });
+  },
+  // 25.4.4.6 Promise.resolve(x)
+  resolve: function(x){
+    return isObject(x) && RECORD in x && $.getProto(x) === this.prototype
+      ? x : new (getConstructor(this))(function(res){
+        res(x);
+      });
+  }
+});
+$def($def.S + $def.F * ($iter.fail(function(iter){
+  Promise.all(iter)['catch'](function(){});
+}) || $iter.DANGER_CLOSING), PROMISE, {
+  // 25.4.4.1 Promise.all(iterable)
+  all: function(iterable){
+    var C      = getConstructor(this)
+      , values = [];
+    return new C(function(resolve, reject){
+      forOf(iterable, false, values.push, values);
+      var remaining = values.length
+        , results   = Array(remaining);
+      if(remaining)$.each.call(values, function(promise, index){
+        C.resolve(promise).then(function(value){
+          results[index] = value;
+          --remaining || resolve(results);
+        }, reject);
+      });
+      else resolve(results);
+    });
+  },
+  // 25.4.4.4 Promise.race(iterable)
+  race: function(iterable){
+    var C = getConstructor(this);
+    return new C(function(resolve, reject){
+      forOf(iterable, false, function(promise){
+        C.resolve(promise).then(resolve, reject);
+      });
+    });
+  }
+});
+cof.set(Promise, PROMISE);
+require('./$.species')(Promise);
+},{"./$":31,"./$.assert":20,"./$.cof":22,"./$.ctx":26,"./$.def":27,"./$.iter":30,"./$.species":37,"./$.task":39,"./$.uid":40,"./$.wks":42}],63:[function(require,module,exports){
+var $         = require('./$')
+  , $def      = require('./$.def')
+  , setProto  = require('./$.set-proto')
+  , $iter     = require('./$.iter')
+  , ITER      = require('./$.uid').safe('iter')
+  , step      = $iter.step
+  , assert    = require('./$.assert')
+  , isObject  = $.isObject
+  , getDesc   = $.getDesc
+  , setDesc   = $.setDesc
+  , getProto  = $.getProto
+  , apply     = Function.apply
+  , assertObject = assert.obj
+  , isExtensible = Object.isExtensible || $.it;
+function Enumerate(iterated){
+  var keys = [], key;
+  for(key in iterated)keys.push(key);
+  $.set(this, ITER, {o: iterated, a: keys, i: 0});
+}
+$iter.create(Enumerate, 'Object', function(){
+  var iter = this[ITER]
+    , keys = iter.a
+    , key;
+  do {
+    if(iter.i >= keys.length)return step(1);
+  } while(!((key = keys[iter.i++]) in iter.o));
+  return step(0, key);
+});
+
+function wrap(fn){
+  return function(it){
+    assertObject(it);
+    try {
+      fn.apply(undefined, arguments);
+      return true;
+    } catch(e){
+      return false;
+    }
+  };
+}
+
+function reflectGet(target, propertyKey/*, receiver*/){
+  var receiver = arguments.length < 3 ? target : arguments[2]
+    , desc = getDesc(assertObject(target), propertyKey), proto;
+  if(desc)return $.has(desc, 'value')
+    ? desc.value
+    : desc.get === undefined
+      ? undefined
+      : desc.get.call(receiver);
+  return isObject(proto = getProto(target))
+    ? reflectGet(proto, propertyKey, receiver)
+    : undefined;
+}
+function reflectSet(target, propertyKey, V/*, receiver*/){
+  var receiver = arguments.length < 4 ? target : arguments[3]
+    , ownDesc  = getDesc(assertObject(target), propertyKey)
+    , existingDescriptor, proto;
+  if(!ownDesc){
+    if(isObject(proto = getProto(target))){
+      return reflectSet(proto, propertyKey, V, receiver);
+    }
+    ownDesc = $.desc(0);
+  }
+  if($.has(ownDesc, 'value')){
+    if(ownDesc.writable === false || !isObject(receiver))return false;
+    existingDescriptor = getDesc(receiver, propertyKey) || $.desc(0);
+    existingDescriptor.value = V;
+    setDesc(receiver, propertyKey, existingDescriptor);
+    return true;
+  }
+  return ownDesc.set === undefined ? false : (ownDesc.set.call(receiver, V), true);
+}
+
+var reflect = {
+  // 26.1.1 Reflect.apply(target, thisArgument, argumentsList)
+  apply: require('./$.ctx')(Function.call, apply, 3),
+  // 26.1.2 Reflect.construct(target, argumentsList [, newTarget])
+  construct: function(target, argumentsList /*, newTarget*/){
+    var proto    = assert.fn(arguments.length < 3 ? target : arguments[2]).prototype
+      , instance = $.create(isObject(proto) ? proto : Object.prototype)
+      , result   = apply.call(target, instance, argumentsList);
+    return isObject(result) ? result : instance;
+  },
+  // 26.1.3 Reflect.defineProperty(target, propertyKey, attributes)
+  defineProperty: wrap(setDesc),
+  // 26.1.4 Reflect.deleteProperty(target, propertyKey)
+  deleteProperty: function(target, propertyKey){
+    var desc = getDesc(assertObject(target), propertyKey);
+    return desc && !desc.configurable ? false : delete target[propertyKey];
+  },
+  // 26.1.5 Reflect.enumerate(target)
+  enumerate: function(target){
+    return new Enumerate(assertObject(target));
+  },
+  // 26.1.6 Reflect.get(target, propertyKey [, receiver])
+  get: reflectGet,
+  // 26.1.7 Reflect.getOwnPropertyDescriptor(target, propertyKey)
+  getOwnPropertyDescriptor: function(target, propertyKey){
+    return getDesc(assertObject(target), propertyKey);
+  },
+  // 26.1.8 Reflect.getPrototypeOf(target)
+  getPrototypeOf: function(target){
+    return getProto(assertObject(target));
+  },
+  // 26.1.9 Reflect.has(target, propertyKey)
+  has: function(target, propertyKey){
+    return propertyKey in target;
+  },
+  // 26.1.10 Reflect.isExtensible(target)
+  isExtensible: function(target){
+    return !!isExtensible(assertObject(target));
+  },
+  // 26.1.11 Reflect.ownKeys(target)
+  ownKeys: require('./$.own-keys'),
+  // 26.1.12 Reflect.preventExtensions(target)
+  preventExtensions: wrap(Object.preventExtensions || $.it),
+  // 26.1.13 Reflect.set(target, propertyKey, V [, receiver])
+  set: reflectSet
+};
+// 26.1.14 Reflect.setPrototypeOf(target, proto)
+if(setProto)reflect.setPrototypeOf = function(target, proto){
+  setProto(assertObject(target), proto);
+  return true;
+};
+
+$def($def.G, {Reflect: {}});
+$def($def.S, 'Reflect', reflect);
+},{"./$":31,"./$.assert":20,"./$.ctx":26,"./$.def":27,"./$.iter":30,"./$.own-keys":33,"./$.set-proto":36,"./$.uid":40}],64:[function(require,module,exports){
+var $      = require('./$')
+  , cof    = require('./$.cof')
+  , RegExp = $.g.RegExp
+  , Base   = RegExp
+  , proto  = RegExp.prototype;
+if($.FW && $.DESC){
+  // RegExp allows a regex with flags as the pattern
+  if(!function(){try{ return RegExp(/a/g, 'i') == '/a/i'; }catch(e){ /* empty */ }}()){
+    RegExp = function RegExp(pattern, flags){
+      return new Base(cof(pattern) == 'RegExp' && flags !== undefined
+        ? pattern.source : pattern, flags);
+    };
+    $.each.call($.getNames(Base), function(key){
+      key in RegExp || $.setDesc(RegExp, key, {
+        configurable: true,
+        get: function(){ return Base[key]; },
+        set: function(it){ Base[key] = it; }
+      });
+    });
+    proto.constructor = RegExp;
+    RegExp.prototype = proto;
+    $.hide($.g, 'RegExp', RegExp);
+  }
+  // 21.2.5.3 get RegExp.prototype.flags()
+  if(/./g.flags != 'g')$.setDesc(proto, 'flags', {
+    configurable: true,
+    get: require('./$.replacer')(/^.*\/(\w*)$/, '$1')
+  });
+}
+require('./$.species')(RegExp);
+},{"./$":31,"./$.cof":22,"./$.replacer":35,"./$.species":37}],65:[function(require,module,exports){
+'use strict';
+var strong = require('./$.collection-strong');
+
+// 23.2 Set Objects
+require('./$.collection')('Set', {
+  // 23.2.3.1 Set.prototype.add(value)
+  add: function(value){
+    return strong.def(this, value = value === 0 ? 0 : value, value);
+  }
+}, strong);
+},{"./$.collection":25,"./$.collection-strong":23}],66:[function(require,module,exports){
+var $def = require('./$.def');
+$def($def.P, 'String', {
+  // 21.1.3.3 String.prototype.codePointAt(pos)
+  codePointAt: require('./$.string-at')(false)
+});
+},{"./$.def":27,"./$.string-at":38}],67:[function(require,module,exports){
+'use strict';
+var $    = require('./$')
+  , cof  = require('./$.cof')
+  , $def = require('./$.def')
+  , toLength = $.toLength;
+
+$def($def.P, 'String', {
+  // 21.1.3.6 String.prototype.endsWith(searchString [, endPosition])
+  endsWith: function(searchString /*, endPosition = @length */){
+    if(cof(searchString) == 'RegExp')throw TypeError();
+    var that = String($.assertDefined(this))
+      , endPosition = arguments[1]
+      , len = toLength(that.length)
+      , end = endPosition === undefined ? len : Math.min(toLength(endPosition), len);
+    searchString += '';
+    return that.slice(end - searchString.length, end) === searchString;
+  }
+});
+},{"./$":31,"./$.cof":22,"./$.def":27}],68:[function(require,module,exports){
+var $def    = require('./$.def')
+  , toIndex = require('./$').toIndex
+  , fromCharCode = String.fromCharCode;
+
+$def($def.S, 'String', {
+  // 21.1.2.2 String.fromCodePoint(...codePoints)
+  fromCodePoint: function(x){ // eslint-disable-line no-unused-vars
+    var res = []
+      , len = arguments.length
+      , i   = 0
+      , code;
+    while(len > i){
+      code = +arguments[i++];
+      if(toIndex(code, 0x10ffff) !== code)throw RangeError(code + ' is not a valid code point');
+      res.push(code < 0x10000
+        ? fromCharCode(code)
+        : fromCharCode(((code -= 0x10000) >> 10) + 0xd800, code % 0x400 + 0xdc00)
+      );
+    } return res.join('');
+  }
+});
+},{"./$":31,"./$.def":27}],69:[function(require,module,exports){
+'use strict';
+var $    = require('./$')
+  , cof  = require('./$.cof')
+  , $def = require('./$.def');
+
+$def($def.P, 'String', {
+  // 21.1.3.7 String.prototype.includes(searchString, position = 0)
+  includes: function(searchString /*, position = 0 */){
+    if(cof(searchString) == 'RegExp')throw TypeError();
+    return !!~String($.assertDefined(this)).indexOf(searchString, arguments[1]);
+  }
+});
+},{"./$":31,"./$.cof":22,"./$.def":27}],70:[function(require,module,exports){
+var set   = require('./$').set
+  , at    = require('./$.string-at')(true)
+  , ITER  = require('./$.uid').safe('iter')
+  , $iter = require('./$.iter')
+  , step  = $iter.step;
+
+// 21.1.3.27 String.prototype[@@iterator]()
+$iter.std(String, 'String', function(iterated){
+  set(this, ITER, {o: String(iterated), i: 0});
+// 21.1.5.2.1 %StringIteratorPrototype%.next()
+}, function(){
+  var iter  = this[ITER]
+    , O     = iter.o
+    , index = iter.i
+    , point;
+  if(index >= O.length)return step(1);
+  point = at.call(O, index);
+  iter.i += point.length;
+  return step(0, point);
+});
+},{"./$":31,"./$.iter":30,"./$.string-at":38,"./$.uid":40}],71:[function(require,module,exports){
+var $    = require('./$')
+  , $def = require('./$.def');
+
+$def($def.S, 'String', {
+  // 21.1.2.4 String.raw(callSite, ...substitutions)
+  raw: function(callSite){
+    var raw = $.toObject(callSite.raw)
+      , len = $.toLength(raw.length)
+      , sln = arguments.length
+      , res = []
+      , i   = 0;
+    while(len > i){
+      res.push(String(raw[i++]));
+      if(i < sln)res.push(String(arguments[i]));
+    } return res.join('');
+  }
+});
+},{"./$":31,"./$.def":27}],72:[function(require,module,exports){
+'use strict';
+var $    = require('./$')
+  , $def = require('./$.def');
+
+$def($def.P, 'String', {
+  // 21.1.3.13 String.prototype.repeat(count)
+  repeat: function(count){
+    var str = String($.assertDefined(this))
+      , res = ''
+      , n   = $.toInteger(count);
+    if(n < 0 || n == Infinity)throw RangeError("Count can't be negative");
+    for(;n > 0; (n >>>= 1) && (str += str))if(n & 1)res += str;
+    return res;
+  }
+});
+},{"./$":31,"./$.def":27}],73:[function(require,module,exports){
+'use strict';
+var $    = require('./$')
+  , cof  = require('./$.cof')
+  , $def = require('./$.def');
+
+$def($def.P, 'String', {
+  // 21.1.3.18 String.prototype.startsWith(searchString [, position ])
+  startsWith: function(searchString /*, position = 0 */){
+    if(cof(searchString) == 'RegExp')throw TypeError();
+    var that  = String($.assertDefined(this))
+      , index = $.toLength(Math.min(arguments[1], that.length));
+    searchString += '';
+    return that.slice(index, index + searchString.length) === searchString;
+  }
+});
+},{"./$":31,"./$.cof":22,"./$.def":27}],74:[function(require,module,exports){
+'use strict';
+// ECMAScript 6 symbols shim
+var $        = require('./$')
+  , setTag   = require('./$.cof').set
+  , uid      = require('./$.uid')
+  , $def     = require('./$.def')
+  , keyOf    = require('./$.keyof')
+  , has      = $.has
+  , hide     = $.hide
+  , getNames = $.getNames
+  , toObject = $.toObject
+  , Symbol   = $.g.Symbol
+  , Base     = Symbol
+  , setter   = false
+  , TAG      = uid.safe('tag')
+  , SymbolRegistry = {}
+  , AllSymbols     = {};
+
+function wrap(tag){
+  var sym = AllSymbols[tag] = $.set($.create(Symbol.prototype), TAG, tag);
+  $.DESC && setter && $.setDesc(Object.prototype, tag, {
+    configurable: true,
+    set: function(value){
+      hide(this, tag, value);
+    }
+  });
+  return sym;
+}
+
+// 19.4.1.1 Symbol([description])
+if(!$.isFunction(Symbol)){
+  Symbol = function(description){
+    if(this instanceof Symbol)throw TypeError('Symbol is not a constructor');
+    return wrap(uid(description));
+  };
+  hide(Symbol.prototype, 'toString', function(){
+    return this[TAG];
+  });
+}
+$def($def.G + $def.W, {Symbol: Symbol});
+
+var symbolStatics = {
+  // 19.4.2.1 Symbol.for(key)
+  'for': function(key){
+    return has(SymbolRegistry, key += '')
+      ? SymbolRegistry[key]
+      : SymbolRegistry[key] = Symbol(key);
+  },
+  // 19.4.2.5 Symbol.keyFor(sym)
+  keyFor: function(key){
+    return keyOf(SymbolRegistry, key);
+  },
+  pure: uid.safe,
+  set: $.set,
+  useSetter: function(){ setter = true; },
+  useSimple: function(){ setter = false; }
+};
+// 19.4.2.2 Symbol.hasInstance
+// 19.4.2.3 Symbol.isConcatSpreadable
+// 19.4.2.4 Symbol.iterator
+// 19.4.2.6 Symbol.match
+// 19.4.2.8 Symbol.replace
+// 19.4.2.9 Symbol.search
+// 19.4.2.10 Symbol.species
+// 19.4.2.11 Symbol.split
+// 19.4.2.12 Symbol.toPrimitive
+// 19.4.2.13 Symbol.toStringTag
+// 19.4.2.14 Symbol.unscopables
+$.each.call((
+    'hasInstance,isConcatSpreadable,iterator,match,replace,search,' +
+    'species,split,toPrimitive,toStringTag,unscopables'
+  ).split(','), function(it){
+    var sym = require('./$.wks')(it);
+    symbolStatics[it] = Symbol === Base ? sym : wrap(sym);
+  }
+);
+
+setter = true;
+
+$def($def.S, 'Symbol', symbolStatics);
+
+$def($def.S + $def.F * (Symbol != Base), 'Object', {
+  // 19.1.2.7 Object.getOwnPropertyNames(O)
+  getOwnPropertyNames: function(it){
+    var names = getNames(toObject(it)), result = [], key, i = 0;
+    while(names.length > i)has(AllSymbols, key = names[i++]) || result.push(key);
+    return result;
+  },
+  // 19.1.2.8 Object.getOwnPropertySymbols(O)
+  getOwnPropertySymbols: function(it){
+    var names = getNames(toObject(it)), result = [], key, i = 0;
+    while(names.length > i)has(AllSymbols, key = names[i++]) && result.push(AllSymbols[key]);
+    return result;
+  }
+});
+
+setTag(Symbol, 'Symbol');
+// 20.2.1.9 Math[@@toStringTag]
+setTag(Math, 'Math', true);
+// 24.3.3 JSON[@@toStringTag]
+setTag($.g.JSON, 'JSON', true);
+},{"./$":31,"./$.cof":22,"./$.def":27,"./$.keyof":32,"./$.uid":40,"./$.wks":42}],75:[function(require,module,exports){
+'use strict';
+var $         = require('./$')
+  , weak      = require('./$.collection-weak')
+  , leakStore = weak.leakStore
+  , ID        = weak.ID
+  , WEAK      = weak.WEAK
+  , has       = $.has
+  , isObject  = $.isObject
+  , isFrozen  = Object.isFrozen || $.core.Object.isFrozen
+  , tmp       = {};
+
+// 23.3 WeakMap Objects
+var WeakMap = require('./$.collection')('WeakMap', {
+  // 23.3.3.3 WeakMap.prototype.get(key)
+  get: function(key){
+    if(isObject(key)){
+      if(isFrozen(key))return leakStore(this).get(key);
+      if(has(key, WEAK))return key[WEAK][this[ID]];
+    }
+  },
+  // 23.3.3.5 WeakMap.prototype.set(key, value)
+  set: function(key, value){
+    return weak.def(this, key, value);
+  }
+}, weak, true, true);
+
+// IE11 WeakMap frozen keys fix
+if($.FW && new WeakMap().set((Object.freeze || Object)(tmp), 7).get(tmp) != 7){
+  $.each.call(['delete', 'has', 'get', 'set'], function(key){
+    var method = WeakMap.prototype[key];
+    WeakMap.prototype[key] = function(a, b){
+      // store frozen objects on leaky map
+      if(isObject(a) && isFrozen(a)){
+        var result = leakStore(this)[key](a, b);
+        return key == 'set' ? this : result;
+      // store all the rest on native weakmap
+      } return method.call(this, a, b);
+    };
+  });
+}
+},{"./$":31,"./$.collection":25,"./$.collection-weak":24}],76:[function(require,module,exports){
+'use strict';
+var weak = require('./$.collection-weak');
+
+// 23.4 WeakSet Objects
+require('./$.collection')('WeakSet', {
+  // 23.4.3.1 WeakSet.prototype.add(value)
+  add: function(value){
+    return weak.def(this, value, true);
+  }
+}, weak, false, true);
+},{"./$.collection":25,"./$.collection-weak":24}],77:[function(require,module,exports){
+// https://github.com/domenic/Array.prototype.includes
+var $def = require('./$.def');
+$def($def.P, 'Array', {
+  includes: require('./$.array-includes')(true)
+});
+require('./$.unscope')('includes');
+},{"./$.array-includes":18,"./$.def":27,"./$.unscope":41}],78:[function(require,module,exports){
+// https://gist.github.com/WebReflection/9353781
+var $       = require('./$')
+  , $def    = require('./$.def')
+  , ownKeys = require('./$.own-keys');
+
+$def($def.S, 'Object', {
+  getOwnPropertyDescriptors: function(object){
+    var O      = $.toObject(object)
+      , result = {};
+    $.each.call(ownKeys(O), function(key){
+      $.setDesc(result, key, $.desc(0, $.getDesc(O, key)));
+    });
+    return result;
+  }
+});
+},{"./$":31,"./$.def":27,"./$.own-keys":33}],79:[function(require,module,exports){
+// http://goo.gl/XkBrjD
+var $    = require('./$')
+  , $def = require('./$.def');
+function createObjectToArray(isEntries){
+  return function(object){
+    var O      = $.toObject(object)
+      , keys   = $.getKeys(object)
+      , length = keys.length
+      , i      = 0
+      , result = Array(length)
+      , key;
+    if(isEntries)while(length > i)result[i] = [key = keys[i++], O[key]];
+    else while(length > i)result[i] = O[keys[i++]];
+    return result;
+  };
+}
+$def($def.S, 'Object', {
+  values:  createObjectToArray(false),
+  entries: createObjectToArray(true)
+});
+},{"./$":31,"./$.def":27}],80:[function(require,module,exports){
+// https://gist.github.com/kangax/9698100
+var $def = require('./$.def');
+$def($def.S, 'RegExp', {
+  escape: require('./$.replacer')(/([\\\-[\]{}()*+?.,^$|])/g, '\\$1', true)
+});
+},{"./$.def":27,"./$.replacer":35}],81:[function(require,module,exports){
+// https://github.com/mathiasbynens/String.prototype.at
+var $def = require('./$.def');
+$def($def.P, 'String', {
+  at: require('./$.string-at')(true)
+});
+},{"./$.def":27,"./$.string-at":38}],82:[function(require,module,exports){
+// JavaScript 1.6 / Strawman array statics shim
+var $       = require('./$')
+  , $def    = require('./$.def')
+  , core    = $.core
+  , statics = {};
+function setStatics(keys, length){
+  $.each.call(keys.split(','), function(key){
+    if(length == undefined && key in core.Array)statics[key] = core.Array[key];
+    else if(key in [])statics[key] = require('./$.ctx')(Function.call, [][key], length);
+  });
+}
+setStatics('pop,reverse,shift,keys,values,entries', 1);
+setStatics('indexOf,every,some,forEach,map,filter,find,findIndex,includes', 3);
+setStatics('join,slice,concat,push,splice,unshift,sort,lastIndexOf,' +
+           'reduce,reduceRight,copyWithin,fill,turn');
+$def($def.S, 'Array', statics);
+},{"./$":31,"./$.ctx":26,"./$.def":27}],83:[function(require,module,exports){
+require('./es6.array.iterator');
+var $         = require('./$')
+  , Iterators = require('./$.iter').Iterators
+  , ITERATOR  = require('./$.wks')('iterator')
+  , NodeList  = $.g.NodeList;
+if($.FW && NodeList && !(ITERATOR in NodeList.prototype)){
+  $.hide(NodeList.prototype, ITERATOR, Iterators.Array);
+}
+Iterators.NodeList = Iterators.Array;
+},{"./$":31,"./$.iter":30,"./$.wks":42,"./es6.array.iterator":49}],84:[function(require,module,exports){
+var $def  = require('./$.def')
+  , $task = require('./$.task');
+$def($def.G + $def.B, {
+  setImmediate:   $task.set,
+  clearImmediate: $task.clear
+});
+},{"./$.def":27,"./$.task":39}],85:[function(require,module,exports){
+// ie9- setTimeout & setInterval additional parameters fix
+var $       = require('./$')
+  , $def    = require('./$.def')
+  , invoke  = require('./$.invoke')
+  , partial = require('./$.partial')
+  , MSIE    = !!$.g.navigator && /MSIE .\./.test(navigator.userAgent); // <- dirty ie9- check
+function wrap(set){
+  return MSIE ? function(fn, time /*, ...args */){
+    return set(invoke(
+      partial,
+      [].slice.call(arguments, 2),
+      $.isFunction(fn) ? fn : Function(fn)
+    ), time);
+  } : set;
+}
+$def($def.G + $def.B + $def.F * MSIE, {
+  setTimeout:  wrap($.g.setTimeout),
+  setInterval: wrap($.g.setInterval)
+});
+},{"./$":31,"./$.def":27,"./$.invoke":29,"./$.partial":34}],86:[function(require,module,exports){
+require('./modules/es5');
+require('./modules/es6.symbol');
+require('./modules/es6.object.assign');
+require('./modules/es6.object.is');
+require('./modules/es6.object.set-prototype-of');
+require('./modules/es6.object.to-string');
+require('./modules/es6.object.statics-accept-primitives');
+require('./modules/es6.function.name');
+require('./modules/es6.number.constructor');
+require('./modules/es6.number.statics');
+require('./modules/es6.math');
+require('./modules/es6.string.from-code-point');
+require('./modules/es6.string.raw');
+require('./modules/es6.string.iterator');
+require('./modules/es6.string.code-point-at');
+require('./modules/es6.string.ends-with');
+require('./modules/es6.string.includes');
+require('./modules/es6.string.repeat');
+require('./modules/es6.string.starts-with');
+require('./modules/es6.array.from');
+require('./modules/es6.array.of');
+require('./modules/es6.array.iterator');
+require('./modules/es6.array.species');
+require('./modules/es6.array.copy-within');
+require('./modules/es6.array.fill');
+require('./modules/es6.array.find');
+require('./modules/es6.array.find-index');
+require('./modules/es6.regexp');
+require('./modules/es6.promise');
+require('./modules/es6.map');
+require('./modules/es6.set');
+require('./modules/es6.weak-map');
+require('./modules/es6.weak-set');
+require('./modules/es6.reflect');
+require('./modules/es7.array.includes');
+require('./modules/es7.string.at');
+require('./modules/es7.regexp.escape');
+require('./modules/es7.object.get-own-property-descriptors');
+require('./modules/es7.object.to-array');
+require('./modules/js.array.statics');
+require('./modules/web.timers');
+require('./modules/web.immediate');
+require('./modules/web.dom.iterable');
+module.exports = require('./modules/$').core;
+},{"./modules/$":31,"./modules/es5":43,"./modules/es6.array.copy-within":44,"./modules/es6.array.fill":45,"./modules/es6.array.find":47,"./modules/es6.array.find-index":46,"./modules/es6.array.from":48,"./modules/es6.array.iterator":49,"./modules/es6.array.of":50,"./modules/es6.array.species":51,"./modules/es6.function.name":52,"./modules/es6.map":53,"./modules/es6.math":54,"./modules/es6.number.constructor":55,"./modules/es6.number.statics":56,"./modules/es6.object.assign":57,"./modules/es6.object.is":58,"./modules/es6.object.set-prototype-of":59,"./modules/es6.object.statics-accept-primitives":60,"./modules/es6.object.to-string":61,"./modules/es6.promise":62,"./modules/es6.reflect":63,"./modules/es6.regexp":64,"./modules/es6.set":65,"./modules/es6.string.code-point-at":66,"./modules/es6.string.ends-with":67,"./modules/es6.string.from-code-point":68,"./modules/es6.string.includes":69,"./modules/es6.string.iterator":70,"./modules/es6.string.raw":71,"./modules/es6.string.repeat":72,"./modules/es6.string.starts-with":73,"./modules/es6.symbol":74,"./modules/es6.weak-map":75,"./modules/es6.weak-set":76,"./modules/es7.array.includes":77,"./modules/es7.object.get-own-property-descriptors":78,"./modules/es7.object.to-array":79,"./modules/es7.regexp.escape":80,"./modules/es7.string.at":81,"./modules/js.array.statics":82,"./modules/web.dom.iterable":83,"./modules/web.immediate":84,"./modules/web.timers":85}],87:[function(require,module,exports){
+(function (global){
+/**
+ * Copyright (c) 2014, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * https://raw.github.com/facebook/regenerator/master/LICENSE file. An
+ * additional grant of patent rights can be found in the PATENTS file in
+ * the same directory.
+ */
+
+!(function(global) {
+  "use strict";
+
+  var hasOwn = Object.prototype.hasOwnProperty;
+  var undefined; // More compressible than void 0.
+  var iteratorSymbol =
+    typeof Symbol === "function" && Symbol.iterator || "@@iterator";
+
+  var inModule = typeof module === "object";
+  var runtime = global.regeneratorRuntime;
+  if (runtime) {
+    if (inModule) {
+      // If regeneratorRuntime is defined globally and we're in a module,
+      // make the exports object identical to regeneratorRuntime.
+      module.exports = runtime;
+    }
+    // Don't bother evaluating the rest of this file if the runtime was
+    // already defined globally.
+    return;
+  }
+
+  // Define the runtime globally (as expected by generated code) as either
+  // module.exports (if we're in a module) or a new, empty object.
+  runtime = global.regeneratorRuntime = inModule ? module.exports : {};
+
+  function wrap(innerFn, outerFn, self, tryLocsList) {
+    return new Generator(innerFn, outerFn, self || null, tryLocsList || []);
+  }
+  runtime.wrap = wrap;
+
+  // Try/catch helper to minimize deoptimizations. Returns a completion
+  // record like context.tryEntries[i].completion. This interface could
+  // have been (and was previously) designed to take a closure to be
+  // invoked without arguments, but in all the cases we care about we
+  // already have an existing method we want to call, so there's no need
+  // to create a new function object. We can even get away with assuming
+  // the method takes exactly one argument, since that happens to be true
+  // in every case, so we don't have to touch the arguments object. The
+  // only additional allocation required is the completion record, which
+  // has a stable shape and so hopefully should be cheap to allocate.
+  function tryCatch(fn, obj, arg) {
+    try {
+      return { type: "normal", arg: fn.call(obj, arg) };
+    } catch (err) {
+      return { type: "throw", arg: err };
+    }
+  }
+
+  var GenStateSuspendedStart = "suspendedStart";
+  var GenStateSuspendedYield = "suspendedYield";
+  var GenStateExecuting = "executing";
+  var GenStateCompleted = "completed";
+
+  // Returning this object from the innerFn has the same effect as
+  // breaking out of the dispatch switch statement.
+  var ContinueSentinel = {};
+
+  // Dummy constructor functions that we use as the .constructor and
+  // .constructor.prototype properties for functions that return Generator
+  // objects. For full spec compliance, you may wish to configure your
+  // minifier not to mangle the names of these two functions.
+  function GeneratorFunction() {}
+  function GeneratorFunctionPrototype() {}
+
+  var Gp = GeneratorFunctionPrototype.prototype = Generator.prototype;
+  GeneratorFunction.prototype = Gp.constructor = GeneratorFunctionPrototype;
+  GeneratorFunctionPrototype.constructor = GeneratorFunction;
+  GeneratorFunction.displayName = "GeneratorFunction";
+
+  runtime.isGeneratorFunction = function(genFun) {
+    var ctor = typeof genFun === "function" && genFun.constructor;
+    return ctor
+      ? ctor === GeneratorFunction ||
+        // For the native GeneratorFunction constructor, the best we can
+        // do is to check its .name property.
+        (ctor.displayName || ctor.name) === "GeneratorFunction"
+      : false;
+  };
+
+  runtime.mark = function(genFun) {
+    genFun.__proto__ = GeneratorFunctionPrototype;
+    genFun.prototype = Object.create(Gp);
+    return genFun;
+  };
+
+  runtime.async = function(innerFn, outerFn, self, tryLocsList) {
+    return new Promise(function(resolve, reject) {
+      var generator = wrap(innerFn, outerFn, self, tryLocsList);
+      var callNext = step.bind(generator.next);
+      var callThrow = step.bind(generator["throw"]);
+
+      function step(arg) {
+        var record = tryCatch(this, null, arg);
+        if (record.type === "throw") {
+          reject(record.arg);
+          return;
+        }
+
+        var info = record.arg;
+        if (info.done) {
+          resolve(info.value);
+        } else {
+          Promise.resolve(info.value).then(callNext, callThrow);
+        }
+      }
+
+      callNext();
+    });
+  };
+
+  function Generator(innerFn, outerFn, self, tryLocsList) {
+    var generator = outerFn ? Object.create(outerFn.prototype) : this;
+    var context = new Context(tryLocsList);
+    var state = GenStateSuspendedStart;
+
+    function invoke(method, arg) {
+      if (state === GenStateExecuting) {
+        throw new Error("Generator is already running");
+      }
+
+      if (state === GenStateCompleted) {
+        // Be forgiving, per 25.3.3.3.3 of the spec:
+        // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-generatorresume
+        return doneResult();
+      }
+
+      while (true) {
+        var delegate = context.delegate;
+        if (delegate) {
+          var record = tryCatch(
+            delegate.iterator[method],
+            delegate.iterator,
+            arg
+          );
+
+          if (record.type === "throw") {
+            context.delegate = null;
+
+            // Like returning generator.throw(uncaught), but without the
+            // overhead of an extra function call.
+            method = "throw";
+            arg = record.arg;
+
+            continue;
+          }
+
+          // Delegate generator ran and handled its own exceptions so
+          // regardless of what the method was, we continue as if it is
+          // "next" with an undefined arg.
+          method = "next";
+          arg = undefined;
+
+          var info = record.arg;
+          if (info.done) {
+            context[delegate.resultName] = info.value;
+            context.next = delegate.nextLoc;
+          } else {
+            state = GenStateSuspendedYield;
+            return info;
+          }
+
+          context.delegate = null;
+        }
+
+        if (method === "next") {
+          if (state === GenStateSuspendedStart &&
+              typeof arg !== "undefined") {
+            // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-generatorresume
+            throw new TypeError(
+              "attempt to send " + JSON.stringify(arg) + " to newborn generator"
+            );
+          }
+
+          if (state === GenStateSuspendedYield) {
+            context.sent = arg;
+          } else {
+            delete context.sent;
+          }
+
+        } else if (method === "throw") {
+          if (state === GenStateSuspendedStart) {
+            state = GenStateCompleted;
+            throw arg;
+          }
+
+          if (context.dispatchException(arg)) {
+            // If the dispatched exception was caught by a catch block,
+            // then let that catch block handle the exception normally.
+            method = "next";
+            arg = undefined;
+          }
+
+        } else if (method === "return") {
+          context.abrupt("return", arg);
+        }
+
+        state = GenStateExecuting;
+
+        var record = tryCatch(innerFn, self, context);
+        if (record.type === "normal") {
+          // If an exception is thrown from innerFn, we leave state ===
+          // GenStateExecuting and loop back for another invocation.
+          state = context.done
+            ? GenStateCompleted
+            : GenStateSuspendedYield;
+
+          var info = {
+            value: record.arg,
+            done: context.done
+          };
+
+          if (record.arg === ContinueSentinel) {
+            if (context.delegate && method === "next") {
+              // Deliberately forget the last sent value so that we don't
+              // accidentally pass it on to the delegate.
+              arg = undefined;
+            }
+          } else {
+            return info;
+          }
+
+        } else if (record.type === "throw") {
+          state = GenStateCompleted;
+
+          if (method === "next") {
+            context.dispatchException(record.arg);
+          } else {
+            arg = record.arg;
+          }
+        }
+      }
+    }
+
+    generator.next = invoke.bind(generator, "next");
+    generator["throw"] = invoke.bind(generator, "throw");
+    generator["return"] = invoke.bind(generator, "return");
+
+    return generator;
+  }
+
+  Gp[iteratorSymbol] = function() {
+    return this;
+  };
+
+  Gp.toString = function() {
+    return "[object Generator]";
+  };
+
+  function pushTryEntry(locs) {
+    var entry = { tryLoc: locs[0] };
+
+    if (1 in locs) {
+      entry.catchLoc = locs[1];
+    }
+
+    if (2 in locs) {
+      entry.finallyLoc = locs[2];
+      entry.afterLoc = locs[3];
+    }
+
+    this.tryEntries.push(entry);
+  }
+
+  function resetTryEntry(entry) {
+    var record = entry.completion || {};
+    record.type = "normal";
+    delete record.arg;
+    entry.completion = record;
+  }
+
+  function Context(tryLocsList) {
+    // The root entry object (effectively a try statement without a catch
+    // or a finally block) gives us a place to store values thrown from
+    // locations where there is no enclosing try statement.
+    this.tryEntries = [{ tryLoc: "root" }];
+    tryLocsList.forEach(pushTryEntry, this);
+    this.reset();
+  }
+
+  runtime.keys = function(object) {
+    var keys = [];
+    for (var key in object) {
+      keys.push(key);
+    }
+    keys.reverse();
+
+    // Rather than returning an object with a next method, we keep
+    // things simple and return the next function itself.
+    return function next() {
+      while (keys.length) {
+        var key = keys.pop();
+        if (key in object) {
+          next.value = key;
+          next.done = false;
+          return next;
+        }
+      }
+
+      // To avoid creating an additional object, we just hang the .value
+      // and .done properties off the next function object itself. This
+      // also ensures that the minifier will not anonymize the function.
+      next.done = true;
+      return next;
+    };
+  };
+
+  function values(iterable) {
+    if (iterable) {
+      var iteratorMethod = iterable[iteratorSymbol];
+      if (iteratorMethod) {
+        return iteratorMethod.call(iterable);
+      }
+
+      if (typeof iterable.next === "function") {
+        return iterable;
+      }
+
+      if (!isNaN(iterable.length)) {
+        var i = -1, next = function next() {
+          while (++i < iterable.length) {
+            if (hasOwn.call(iterable, i)) {
+              next.value = iterable[i];
+              next.done = false;
+              return next;
+            }
+          }
+
+          next.value = undefined;
+          next.done = true;
+
+          return next;
+        };
+
+        return next.next = next;
+      }
+    }
+
+    // Return an iterator with no values.
+    return { next: doneResult };
+  }
+  runtime.values = values;
+
+  function doneResult() {
+    return { value: undefined, done: true };
+  }
+
+  Context.prototype = {
+    constructor: Context,
+
+    reset: function() {
+      this.prev = 0;
+      this.next = 0;
+      this.sent = undefined;
+      this.done = false;
+      this.delegate = null;
+
+      this.tryEntries.forEach(resetTryEntry);
+
+      // Pre-initialize at least 20 temporary variables to enable hidden
+      // class optimizations for simple generators.
+      for (var tempIndex = 0, tempName;
+           hasOwn.call(this, tempName = "t" + tempIndex) || tempIndex < 20;
+           ++tempIndex) {
+        this[tempName] = null;
+      }
+    },
+
+    stop: function() {
+      this.done = true;
+
+      var rootEntry = this.tryEntries[0];
+      var rootRecord = rootEntry.completion;
+      if (rootRecord.type === "throw") {
+        throw rootRecord.arg;
+      }
+
+      return this.rval;
+    },
+
+    dispatchException: function(exception) {
+      if (this.done) {
+        throw exception;
+      }
+
+      var context = this;
+      function handle(loc, caught) {
+        record.type = "throw";
+        record.arg = exception;
+        context.next = loc;
+        return !!caught;
+      }
+
+      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
+        var entry = this.tryEntries[i];
+        var record = entry.completion;
+
+        if (entry.tryLoc === "root") {
+          // Exception thrown outside of any try block that could handle
+          // it, so set the completion value of the entire function to
+          // throw the exception.
+          return handle("end");
+        }
+
+        if (entry.tryLoc <= this.prev) {
+          var hasCatch = hasOwn.call(entry, "catchLoc");
+          var hasFinally = hasOwn.call(entry, "finallyLoc");
+
+          if (hasCatch && hasFinally) {
+            if (this.prev < entry.catchLoc) {
+              return handle(entry.catchLoc, true);
+            } else if (this.prev < entry.finallyLoc) {
+              return handle(entry.finallyLoc);
+            }
+
+          } else if (hasCatch) {
+            if (this.prev < entry.catchLoc) {
+              return handle(entry.catchLoc, true);
+            }
+
+          } else if (hasFinally) {
+            if (this.prev < entry.finallyLoc) {
+              return handle(entry.finallyLoc);
+            }
+
+          } else {
+            throw new Error("try statement without catch or finally");
+          }
+        }
+      }
+    },
+
+    abrupt: function(type, arg) {
+      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
+        var entry = this.tryEntries[i];
+        if (entry.tryLoc <= this.prev &&
+            hasOwn.call(entry, "finallyLoc") &&
+            this.prev < entry.finallyLoc) {
+          var finallyEntry = entry;
+          break;
+        }
+      }
+
+      if (finallyEntry &&
+          (type === "break" ||
+           type === "continue") &&
+          finallyEntry.tryLoc <= arg &&
+          arg < finallyEntry.finallyLoc) {
+        // Ignore the finally entry if control is not jumping to a
+        // location outside the try/catch block.
+        finallyEntry = null;
+      }
+
+      var record = finallyEntry ? finallyEntry.completion : {};
+      record.type = type;
+      record.arg = arg;
+
+      if (finallyEntry) {
+        this.next = finallyEntry.finallyLoc;
+      } else {
+        this.complete(record);
+      }
+
+      return ContinueSentinel;
+    },
+
+    complete: function(record, afterLoc) {
+      if (record.type === "throw") {
+        throw record.arg;
+      }
+
+      if (record.type === "break" ||
+          record.type === "continue") {
+        this.next = record.arg;
+      } else if (record.type === "return") {
+        this.rval = record.arg;
+        this.next = "end";
+      } else if (record.type === "normal" && afterLoc) {
+        this.next = afterLoc;
+      }
+
+      return ContinueSentinel;
+    },
+
+    finish: function(finallyLoc) {
+      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
+        var entry = this.tryEntries[i];
+        if (entry.finallyLoc === finallyLoc) {
+          return this.complete(entry.completion, entry.afterLoc);
+        }
+      }
+    },
+
+    "catch": function(tryLoc) {
+      for (var i = this.tryEntries.length - 1; i >= 0; --i) {
+        var entry = this.tryEntries[i];
+        if (entry.tryLoc === tryLoc) {
+          var record = entry.completion;
+          if (record.type === "throw") {
+            var thrown = record.arg;
+            resetTryEntry(entry);
+          }
+          return thrown;
+        }
+      }
+
+      // The context.catch method must only be called with a location
+      // argument that corresponds to a known catch block.
+      throw new Error("illegal catch attempt");
+    },
+
+    delegateYield: function(iterable, resultName, nextLoc) {
+      this.delegate = {
+        iterator: values(iterable),
+        resultName: resultName,
+        nextLoc: nextLoc
+      };
+
+      return ContinueSentinel;
+    }
+  };
+})(
+  // Among the various tricks for obtaining a reference to the global
+  // object, this seems to be the most reliable technique that does not
+  // use indirect eval (which violates Content Security Policy).
+  typeof global === "object" ? global :
+  typeof window === "object" ? window : this
+);
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],88:[function(require,module,exports){
+module.exports = require("./lib/babel/polyfill");
+
+},{"./lib/babel/polyfill":17}],89:[function(require,module,exports){
+module.exports = require("babel-core/polyfill");
+
+},{"babel-core/polyfill":88}]},{},[5]);

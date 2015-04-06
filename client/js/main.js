@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 require('babelify/polyfill');
 
-window.server = 'http://0.0.0.0:5000'
+window.server = 'http://freedom.sugarlabs.org:5004'
 
 import {AuthModel, AuthView} from './auth.js';
 import {ClassesModel, ClassesView} from './classes.js';

@@ -111,10 +111,18 @@ export class ClassView extends View {
     render () {
         var ul = document.createElement('ul');
 
+        if (getCurrentClassID() === null) {
+            var e = document.createElement('li');
+            e.innerHTML = `
+            <i class="fa fa-exclamation-triangle"></i>
+            No Class Selected`;
+            ul.appendChild(e);
+        }
+
         if (this.model.loading) {
             var e = document.createElement('li');
             e.innerHTML = `
-            <i class="fa fa-refresh fa-3 fa-spin"></i>
+            <i class="fa fa-refresh fa-spin"></i>
             Loading...`;
             ul.appendChild(e);
         }
